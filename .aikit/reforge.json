@@ -179,7 +179,7 @@
       ],
       "status": "completed",
       "created": "2026-10-29T17:11:34",
-      "updated": "2026-10-30T20:17:59",
+      "updated": "2026-10-30T20:50:16",
       "last_audit": {
         "run": "run-1",
         "stage": 37,
@@ -523,7 +523,7 @@
         "counts": {},
         "reviewed": 15,
         "review": {
-          "status": "unreviewed",
+          "status": "reviewed",
           "rejected": [],
           "files": [
             ".aikit/decisions.md",
@@ -544,7 +544,13 @@
           ],
           "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-37-57e16fc9674d.md",
           "redacted": 0,
-          "reason": "awaiting the reviewer's findings",
+          "reason": "the answer held no findings",
+          "coverage": {
+            "reported": 15,
+            "total": 15,
+            "missing": [],
+            "unknown": []
+          },
           "findings": []
         },
         "skipped": [],
@@ -4560,7 +4566,7 @@
           "counts": {},
           "reviewed": 43,
           "review": {
-            "status": "unreviewed",
+            "status": "reviewed",
             "rejected": [],
             "files": [
               ".aikit/codebase_map.md",
@@ -4609,7 +4615,13 @@
             ],
             "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-36-cd75aaf55508.md",
             "redacted": 0,
-            "reason": "awaiting the reviewer's findings",
+            "reason": "the answer held no findings",
+            "coverage": {
+              "reported": 937,
+              "total": 937,
+              "missing": [],
+              "unknown": []
+            },
             "findings": []
           },
           "skipped": [],
@@ -4961,7 +4973,7 @@
           "counts": {},
           "reviewed": 15,
           "review": {
-            "status": "unreviewed",
+            "status": "reviewed",
             "rejected": [],
             "files": [
               ".aikit/decisions.md",
@@ -4982,7 +4994,13 @@
             ],
             "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-37-57e16fc9674d.md",
             "redacted": 0,
-            "reason": "awaiting the reviewer's findings",
+            "reason": "the answer held no findings",
+            "coverage": {
+              "reported": 15,
+              "total": 15,
+              "missing": [],
+              "unknown": []
+            },
             "findings": []
           },
           "skipped": [],
@@ -5505,7 +5523,7 @@
     "counts": {},
     "reviewed": 15,
     "review": {
-      "status": "unreviewed",
+      "status": "reviewed",
       "rejected": [],
       "files": [
         ".aikit/decisions.md",
@@ -5526,7 +5544,13 @@
       ],
       "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-37-57e16fc9674d.md",
       "redacted": 0,
-      "reason": "awaiting the reviewer's findings",
+      "reason": "the answer held no findings",
+      "coverage": {
+        "reported": 15,
+        "total": 15,
+        "missing": [],
+        "unknown": []
+      },
       "findings": []
     },
     "skipped": [],
@@ -9542,7 +9566,7 @@
       "counts": {},
       "reviewed": 43,
       "review": {
-        "status": "unreviewed",
+        "status": "reviewed",
         "rejected": [],
         "files": [
           ".aikit/codebase_map.md",
@@ -9591,7 +9615,13 @@
         ],
         "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-36-cd75aaf55508.md",
         "redacted": 0,
-        "reason": "awaiting the reviewer's findings",
+        "reason": "the answer held no findings",
+        "coverage": {
+          "reported": 937,
+          "total": 937,
+          "missing": [],
+          "unknown": []
+        },
         "findings": []
       },
       "skipped": [],
@@ -9943,7 +9973,7 @@
       "counts": {},
       "reviewed": 15,
       "review": {
-        "status": "unreviewed",
+        "status": "reviewed",
         "rejected": [],
         "files": [
           ".aikit/decisions.md",
@@ -9964,7 +9994,13 @@
         ],
         "packet": "C:\\Users\\Yunus-Emre\\Desktop\\portable_agent_kit\\projects\\cyberpulse\\.aikit\\reforge.reviews\\stage-run-1-37-57e16fc9674d.md",
         "redacted": 0,
-        "reason": "awaiting the reviewer's findings",
+        "reason": "the answer held no findings",
+        "coverage": {
+          "reported": 15,
+          "total": 15,
+          "missing": [],
+          "unknown": []
+        },
         "findings": []
       },
       "skipped": [],
