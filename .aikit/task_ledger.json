@@ -13,44 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "task-cyberpulse-faction-ranks",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Faction ranks complete; project gate 5/5, 436 tests; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379110.3569832,
-      "timestamp_str": "2026-10-30 19:51:50",
-      "agent": "opencode:faction-ranks-1"
-    },
-    {
-      "task_id": "task-cyberpulse-faction-ranks",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-cyberpulse-faction-ranks' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793379151.8851154,
-      "timestamp_str": "2026-10-30 19:52:31",
-      "agent": "opencode:faction-ranks-1"
-    },
-    {
-      "task_id": "task-cyberpulse-release-040",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Cut the 0.4.0 release with one version source, --version and a changelog",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379238.0737252,
-      "timestamp_str": "2026-10-30 19:53:58",
-      "agent": "opencode:release-040-1",
-      "impact_assessment": {
-        "why": "Version strings disagree across __init__.py, pyproject.toml and the CLI banner, and the large feature set since 0.3.0 has no release record.",
-        "benefits": "A single version source prevents drift, --version supports packaging and support, and a changelog makes the release legible.",
-        "risks": "contract: CLI metadata and pyproject change; dependency: tomllib is unavailable on Python 3.10 so tests must not require it; concurrency: none; state: packaging metadata must match the runtime version exactly.",
-        "mitigation": "Export __version__ from the package, derive the banner and argparse version from it, assert pyproject parity in a test, and document the release in CHANGELOG.md."
-      }
-    },
-    {
       "task_id": "task-cyberpulse-release-040",
       "phase": "in_progress",
       "phase_num": 3,
@@ -249,6 +211,48 @@
       "status": "completed",
       "timestamp": 1793380679.2370641,
       "timestamp_str": "2026-10-30 20:17:59",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge run",
+      "phase_num": 3,
+      "description": "run started (start=164, step=164, stop=164)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793384816.3980126,
+      "timestamp_str": "2026-10-30 21:26:56",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 1",
+      "phase_num": 3,
+      "description": "Reforge stage 1: window 164, 164 commit(s), 63 file(s) reviewed (unreviewed), 6 finding(s), 0 repaired, 6 binary not analysed (reliability=6)",
+      "files_affected": [
+        "cyberpulse/cli.py",
+        "cyberpulse/storage.py",
+        "assets/artwork.jpg",
+        "assets/logo.jpg",
+        "assets/logo.png",
+        "assets/screenshots/2026-10-28-index.png",
+        "assets/social-preview.jpg",
+        "assets/social-preview.png"
+      ],
+      "status": "in_progress",
+      "timestamp": 1793385007.2389202,
+      "timestamp_str": "2026-10-30 21:30:07",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 1",
+      "phase_num": 3,
+      "description": "Reforge stage 1: stage 1 host review reviewed; run completed; coverage 2110/2110",
+      "files_affected": [],
+      "status": "completed",
+      "timestamp": 1793386138.234848,
+      "timestamp_str": "2026-10-30 21:48:58",
       "agent": "opencode"
     }
   ]
