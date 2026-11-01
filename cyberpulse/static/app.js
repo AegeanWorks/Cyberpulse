@@ -2686,6 +2686,11 @@ function renderBufferPlayerSequence() {
     el.textContent = hex;
     container.appendChild(el);
   });
+  const triesEl = document.getElementById("buf-tries");
+  if (triesEl) {
+    const target = (state.activePuzzle && state.activePuzzle.target_seq) || [];
+    triesEl.textContent = `BLOCKS ${state.bufferInput.length}/${target.length || 2}`;
+  }
 }
 
 async function handleInjectBuffer() {

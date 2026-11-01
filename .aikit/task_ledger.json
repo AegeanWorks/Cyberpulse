@@ -1,70 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "review-push",
-    "last_phase": "phase 2",
-    "active_phase": 2,
+    "task_id": "audit-push5",
+    "last_phase": "phase 4",
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793566620.570351,
+    "updated_at": 1793567056.4192097,
     "owner": "kilo:1",
     "started_by": "kilo:1",
-    "continuations": [],
-    "impact_assessment": {
-      "why": "last 3 pushes were reforge bookkeeping; uncommitted tree holds all graphics/mechanics/sim work",
-      "benefits": "shippable reviewed increment on origin",
-      "risks": "contract: additive only, saves compatible; dependency: zero-dep; concurrency: none; state: no persisted schema change",
-      "mitigation": "full suite + 5 gates, explicit staging, conventional commit, non-force push"
-    }
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "gfx-ui-pass1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'gfx-ui-pass1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793564947.9273322,
-      "timestamp_str": "2026-11-01 23:29:07",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "gfx-ui-pass2",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/5] Pass2 plan: entity sprites + puzzle juice + CLI topology map",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793564999.4653628,
-      "timestamp_str": "2026-11-01 23:29:59",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "pass1 covered matrix base, puzzles/entities/CLI map still flat",
-        "benefits": "readable operatives/hunters/items, juicier puzzles, scannable terminal map",
-        "risks": "contract: save schema stable; dependency: zero-dep only; concurrency: rAF single thread; state: no new persisted fields",
-        "mitigation": "additive constants/CSS/DOM only, keep test strings, full suite + check"
-      }
-    },
-    {
-      "task_id": "gfx-ui-pass2",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[5/5] Pass2 done, 449 tests OK, check 5/5 passed on retry (prior mechanics timeout flaky), checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793565398.6671429,
-      "timestamp_str": "2026-11-01 23:36:38",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "gfx-ui-pass2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'gfx-ui-pass2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793565401.3768215,
-      "timestamp_str": "2026-11-01 23:36:41",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "gfx-ui-pass3",
       "phase": "phase 2",
@@ -271,6 +217,55 @@
         "risks": "contract: additive only, saves compatible; dependency: zero-dep; concurrency: none; state: no persisted schema change",
         "mitigation": "full suite + 5 gates, explicit staging, conventional commit, non-force push"
       }
+    },
+    {
+      "task_id": "review-push",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Reviewed, fixed endpoint tests, 473 tests OK, 5/5 gates, committed 1cc9243 and pushed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566871.2308269,
+      "timestamp_str": "2026-11-02 00:01:11",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "review-push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'review-push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793566871.6222546,
+      "timestamp_str": "2026-11-02 00:01:11",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "audit-push5",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Audit last-5-push range: ID cross-check, runtime smoke, suite + gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566915.9584568,
+      "timestamp_str": "2026-11-02 00:01:55",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "post-push verification with fresh eyes on shipped JS/DOM wiring",
+        "benefits": "catch DOM-ID drift and runtime-only faults before next increment",
+        "risks": "contract: read-only audit unless a fault is found; dependency: zero-dep; concurrency: none; state: none",
+        "mitigation": "cross-check script, smoke server, full suite; only fix proven faults"
+      }
+    },
+    {
+      "task_id": "audit-push5",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Audit done, buf-tries fix, 473 tests OK, 5/5 gates, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793567056.4192097,
+      "timestamp_str": "2026-11-02 00:04:16",
+      "agent": "kilo:1"
     }
   ]
 }
