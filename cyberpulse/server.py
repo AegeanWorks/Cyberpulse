@@ -403,6 +403,29 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             self.send_json_response(puzzle_payload)
             return
 
+        if path == "/api/forecast":
+            action = "scan"
+            target = ""
+            if "?" in self.path:
+                from urllib.parse import parse_qsl, unquote
+                for k, v in parse_qsl(self.path.split("?", 1)[1], keep_blank_values=True):
+                    if k == "action":
+                        action = unquote(v)
+                    elif k in ("target", "ip", "node_id"):
+                        target = unquote(v)
+            self.send_json_response(self.server_session.engine.action_forecast(action, target))
+            return
+
+        if path == "/api/route":
+            target = self.server_session.engine.state.current_node_id
+            if "?" in self.path:
+                from urllib.parse import parse_qsl, unquote
+                for k, v in parse_qsl(self.path.split("?", 1)[1], keep_blank_values=True):
+                    if k in ("target", "ip", "node_id"):
+                        target = unquote(v)
+            self.send_json_response(self.server_session.engine.trace_route(target))
+            return
+
         # Serve static assets
         self.serve_static(path)
 

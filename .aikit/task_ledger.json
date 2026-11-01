@@ -1,259 +1,276 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "task-cyberpulse-reset-backup-guard",
-    "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793380249.846914,
-    "owner": "opencode:reset-backup-guard-1",
-    "started_by": "opencode:reset-backup-guard-1",
+    "task_id": "review-push",
+    "last_phase": "phase 2",
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1793566620.570351,
+    "owner": "kilo:1",
+    "started_by": "kilo:1",
     "continuations": [],
-    "completed_at": 1793380283.3187187
+    "impact_assessment": {
+      "why": "last 3 pushes were reforge bookkeeping; uncommitted tree holds all graphics/mechanics/sim work",
+      "benefits": "shippable reviewed increment on origin",
+      "risks": "contract: additive only, saves compatible; dependency: zero-dep; concurrency: none; state: no persisted schema change",
+      "mitigation": "full suite + 5 gates, explicit staging, conventional commit, non-force push"
+    }
   },
   "checkpoints": [
     {
-      "task_id": "task-cyberpulse-release-040",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Version SSOT, --version, changelog and README release metadata green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379276.7994332,
-      "timestamp_str": "2026-10-30 19:54:36",
-      "agent": "opencode:release-040-1"
-    },
-    {
-      "task_id": "task-cyberpulse-release-040",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[3/3] 0.4.0 release metadata and changelog complete; project gate 5/5, 439 tests; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379346.8404818,
-      "timestamp_str": "2026-10-30 19:55:46",
-      "agent": "opencode:release-040-1"
-    },
-    {
-      "task_id": "task-cyberpulse-release-040",
+      "task_id": "gfx-ui-pass1",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'task-cyberpulse-release-040' completed successfully.",
+      "description": "Task 'gfx-ui-pass1' completed successfully.",
       "status": "completed",
-      "timestamp": 1793379388.0246854,
-      "timestamp_str": "2026-10-30 19:56:28",
-      "agent": "opencode:release-040-1"
+      "timestamp": 1793564947.9273322,
+      "timestamp_str": "2026-11-01 23:29:07",
+      "agent": "kilo:1"
     },
     {
-      "task_id": "task-cyberpulse-faction-allegiance",
-      "phase": "in_progress",
+      "task_id": "gfx-ui-pass2",
+      "phase": "phase 2",
       "phase_num": 2,
-      "description": "[1/4] Add run allegiance with Syndicate contract and Street shop patron bonuses",
+      "description": "[1/5] Pass2 plan: entity sprites + puzzle juice + CLI topology map",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793379468.5582123,
-      "timestamp_str": "2026-10-30 19:57:48",
-      "agent": "opencode:faction-allegiance-1",
+      "timestamp": 1793564999.4653628,
+      "timestamp_str": "2026-11-01 23:29:59",
+      "agent": "kilo:1",
       "impact_assessment": {
-        "why": "Faction standing is automatic; players cannot declare a patron or shape which faction their run advances, so the new ranks lack a role-play choice.",
-        "benefits": "Allegiance gives each run a faction identity, adds a meaningful start-of-run decision, and makes patron standing and economics diverge from a neutral run.",
-        "risks": "contract: engine/save/history gain an allegiance field and reset accepts one; dependency: none; concurrency: one run; state: old saves must default to none and patron bonuses must stack within existing caps.",
-        "mitigation": "Normalize unknown allegiances to none, apply patron bonuses only through central payout/shop/standing paths, persist the field, and cover neutral/Syndicate/Street behavior plus legacy saves."
+        "why": "pass1 covered matrix base, puzzles/entities/CLI map still flat",
+        "benefits": "readable operatives/hunters/items, juicier puzzles, scannable terminal map",
+        "risks": "contract: save schema stable; dependency: zero-dep only; concurrency: rAF single thread; state: no new persisted fields",
+        "mitigation": "additive constants/CSS/DOM only, keep test strings, full suite + check"
       }
     },
     {
-      "task_id": "task-cyberpulse-faction-allegiance",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[3/3] Allegiance engine, persistence, CLI/API and Web selector green; 443 tests",
+      "task_id": "gfx-ui-pass2",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[5/5] Pass2 done, 449 tests OK, check 5/5 passed on retry (prior mechanics timeout flaky), checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793379701.5391893,
-      "timestamp_str": "2026-10-30 20:01:41",
-      "agent": "opencode:faction-allegiance-1"
+      "timestamp": 1793565398.6671429,
+      "timestamp_str": "2026-11-01 23:36:38",
+      "agent": "kilo:1"
     },
     {
-      "task_id": "task-cyberpulse-faction-allegiance",
+      "task_id": "gfx-ui-pass2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'gfx-ui-pass2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793565401.3768215,
+      "timestamp_str": "2026-11-01 23:36:41",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "gfx-ui-pass3",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Pass3 hardening: reset breach cache, viewport cache, static osc frame, visual unit tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793565469.0016947,
+      "timestamp_str": "2026-11-01 23:37:49",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "pass2 left stale breach cache across resets and per-particle viewport lookups",
+        "benefits": "correct replay bursts, faster canvas, locked sprite contracts",
+        "risks": "contract: save schema stable; dependency: zero-dep only; concurrency: rAF single thread; state: no new persisted fields",
+        "mitigation": "surgical JS edits, additive tests only, full suite + check"
+      }
+    },
+    {
+      "task_id": "gfx-ui-pass3",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Pass3 done, 455 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793565560.7937953,
+      "timestamp_str": "2026-11-01 23:39:20",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "gfx-ui-pass3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'gfx-ui-pass3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793565563.646107,
+      "timestamp_str": "2026-11-01 23:39:23",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "gfx-ui-pass4",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Runtime smoke: add inline favicon, verify matrix render",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793565625.9800744,
+      "timestamp_str": "2026-11-01 23:40:25",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "smoke run shows favicon 404 as only console error",
+        "benefits": "zero console errors, cleaner first paint",
+        "risks": "contract: static HTML head only; dependency: zero-dep data URI; concurrency: none; state: none",
+        "mitigation": "single link tag, re-screenshot, full suite"
+      }
+    },
+    {
+      "task_id": "gfx-ui-pass4",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Favicon fix verified, 455 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793565711.3542244,
+      "timestamp_str": "2026-11-01 23:41:51",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "gfx-ui-pass4",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'gfx-ui-pass4' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793565711.5357158,
+      "timestamp_str": "2026-11-01 23:41:51",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "mech-balance-pass1",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Mechanics: action forecasts + risk clarity, no number changes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793565817.236363,
+      "timestamp_str": "2026-11-01 23:43:37",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "costs hidden, combo value-at-risk unclear, trace danger feedback weak",
+        "benefits": "informed tactics, fewer blind burns, same tuned numbers",
+        "risks": "contract: no balance numbers change; dependency: zero-dep; concurrency: forecast is pure/no locks; state: no new persisted fields",
+        "mitigation": "forecast read-only, additive endpoint/CLI cmd, failing-first tests for new API, full suite + check"
+      }
+    },
+    {
+      "task_id": "mech-balance-pass1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Forecasts + risk clarity done, 463 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566006.4368994,
+      "timestamp_str": "2026-11-01 23:46:46",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "mech-balance-pass1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'mech-balance-pass1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793566006.7683983,
+      "timestamp_str": "2026-11-01 23:46:46",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "center-ip-ui",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Center matrix IP readout: live coords chip + canvas IP pills + hover",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566044.292773,
+      "timestamp_str": "2026-11-01 23:47:24",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "coords label static, canvas IPs tiny with no backdrop, no hover affordance",
+        "benefits": "scannable IPs, live selection readout, pointer affordance",
+        "risks": "contract: static/JS only; dependency: zero-dep; concurrency: rAF single thread; state: no persisted fields",
+        "mitigation": "surgical canvas/DOM edits, motion-safe preserved, JS check + full suite"
+      }
+    },
+    {
+      "task_id": "center-ip-ui",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Center IP readout done, 463 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566128.0502357,
+      "timestamp_str": "2026-11-01 23:48:48",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "center-ip-ui",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'center-ip-ui' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793566128.7060866,
+      "timestamp_str": "2026-11-01 23:48:48",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "sim-life",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Real-life sim: traceroute hops, host fingerprints, work shifts",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793566206.715764,
+      "timestamp_str": "2026-11-01 23:50:06",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "hosts lack OS/uptime/patch identity, no path readout, staff always available",
+        "benefits": "believable recon, route planning, shift-aware targeting",
+        "risks": "contract: Node/Employee additive optional fields only; dependency: zero-dep; concurrency: pure reads; state: defaults backfill old saves",
+        "mitigation": "defaults keep from_dict compatible, failing-first tests, full suite + check"
+      }
+    },
+    {
+      "task_id": "sim-life",
       "phase": "in_progress",
       "phase_num": 4,
-      "description": "[4/4] Faction allegiance complete; project gate 5/5, 443 tests; checklists: passed",
+      "description": "[4/4] Sim-life done, 471 tests OK, hygiene/knowledge/secrets direct gates pass, checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793379760.48923,
-      "timestamp_str": "2026-10-30 20:02:40",
-      "agent": "opencode:faction-allegiance-1"
+      "timestamp": 1793566398.4917696,
+      "timestamp_str": "2026-11-01 23:53:18",
+      "agent": "kilo:1"
     },
     {
-      "task_id": "task-cyberpulse-faction-allegiance",
+      "task_id": "sim-life",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'task-cyberpulse-faction-allegiance' completed successfully.",
+      "description": "Task 'sim-life' completed successfully.",
       "status": "completed",
-      "timestamp": 1793379807.8497791,
-      "timestamp_str": "2026-10-30 20:03:27",
-      "agent": "opencode:faction-allegiance-1"
+      "timestamp": 1793566398.9371798,
+      "timestamp_str": "2026-11-01 23:53:18",
+      "agent": "kilo:1"
     },
     {
-      "task_id": "task-cyberpulse-contract-reroll",
-      "phase": "in_progress",
+      "task_id": "review-push",
+      "phase": "phase 2",
       "phase_num": 2,
-      "description": "[1/3] Add a 50 CR contract-board reroll across terminal, API and Web",
+      "description": "[1/3] Review-push: audit 6-task change set for bugs, fix gaps, commit and push",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793379885.4871392,
-      "timestamp_str": "2026-10-30 20:04:45",
-      "agent": "opencode:contract-reroll-1",
+      "timestamp": 1793566620.570351,
+      "timestamp_str": "2026-11-01 23:57:00",
+      "agent": "kilo:1",
       "impact_assessment": {
-        "why": "A job board can roll three unusable offers, forcing a wait or a bad contract with no paid escape; the market has no service for it.",
-        "benefits": "A priced reroll restores agency at the board, creates a small credit sink, and gives the Web card a meaningful action.",
-        "risks": "contract: new engine/API/CLI action only, no schema change; dependency: none; concurrency: one board per run; state: failed rerolls must not charge and active contracts must not duplicate.",
-        "mitigation": "Refill into a candidate list before charging, preserve the old board on failure, exclude the active contract signature, and cover success, insufficient funds, terminal state and API paths."
+        "why": "last 3 pushes were reforge bookkeeping; uncommitted tree holds all graphics/mechanics/sim work",
+        "benefits": "shippable reviewed increment on origin",
+        "risks": "contract: additive only, saves compatible; dependency: zero-dep; concurrency: none; state: no persisted schema change",
+        "mitigation": "full suite + 5 gates, explicit staging, conventional commit, non-force push"
       }
-    },
-    {
-      "task_id": "task-cyberpulse-contract-reroll",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[3/3] Contract reroll engine, CLI/API and Web button green; 447 tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793379992.931019,
-      "timestamp_str": "2026-10-30 20:06:32",
-      "agent": "opencode:contract-reroll-1"
-    },
-    {
-      "task_id": "task-cyberpulse-contract-reroll",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Contract reroll complete; project gate 5/5, 447 tests; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793380041.838927,
-      "timestamp_str": "2026-10-30 20:07:21",
-      "agent": "opencode:contract-reroll-1"
-    },
-    {
-      "task_id": "task-cyberpulse-contract-reroll",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-cyberpulse-contract-reroll' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793380080.643473,
-      "timestamp_str": "2026-10-30 20:08:00",
-      "agent": "opencode:contract-reroll-1"
-    },
-    {
-      "task_id": "task-cyberpulse-reset-backup-guard",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Abort career reset when the pre-reset backup cannot be written",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793380175.4451735,
-      "timestamp_str": "2026-10-30 20:09:35",
-      "agent": "opencode:reset-backup-guard-1",
-      "impact_assessment": {
-        "why": "reset_career treats a failed backup write the same as no prior career, so a disk error can still delete the profile the backup was meant to protect.",
-        "benefits": "The destructive path now fails closed: a career is only removed after a verified backup exists, and the user is told why the reset stopped.",
-        "risks": "contract: reset CLI/API behavior around backup failure; dependency: none; concurrency: single-user; state: successful resets and empty-career resets must keep working.",
-        "mitigation": "Distinguish an absent career from a failed backup write, abort before deletion, return a clear error over the API, and cover the failure and success paths."
-      }
-    },
-    {
-      "task_id": "task-cyberpulse-reset-backup-guard",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/2] Reset backup guard green; abort paths preserve the profile and successful reset still works",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793380199.6795554,
-      "timestamp_str": "2026-10-30 20:09:59",
-      "agent": "opencode:reset-backup-guard-1"
-    },
-    {
-      "task_id": "task-cyberpulse-reset-backup-guard",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[2/2] Reset backup guard complete; project gate 5/5, 449 tests; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793380249.846914,
-      "timestamp_str": "2026-10-30 20:10:49",
-      "agent": "opencode:reset-backup-guard-1"
-    },
-    {
-      "task_id": "task-cyberpulse-reset-backup-guard",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'task-cyberpulse-reset-backup-guard' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793380283.31872,
-      "timestamp_str": "2026-10-30 20:11:23",
-      "agent": "opencode:reset-backup-guard-1"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 36",
-      "phase_num": 3,
-      "description": "Reforge stage 36: window 108, 57 commit(s), 43 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793380556.0670056,
-      "timestamp_str": "2026-10-30 20:15:56",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-1",
-      "phase": "reforge stage 37",
-      "phase_num": 3,
-      "description": "Reforge stage 37: window 164, 2 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired",
-      "files_affected": [],
-      "status": "completed",
-      "timestamp": 1793380679.2370641,
-      "timestamp_str": "2026-10-30 20:17:59",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge run",
-      "phase_num": 3,
-      "description": "run started (start=164, step=164, stop=164)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793384816.3980126,
-      "timestamp_str": "2026-10-30 21:26:56",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 1",
-      "phase_num": 3,
-      "description": "Reforge stage 1: window 164, 164 commit(s), 63 file(s) reviewed (unreviewed), 6 finding(s), 0 repaired, 6 binary not analysed (reliability=6)",
-      "files_affected": [
-        "cyberpulse/cli.py",
-        "cyberpulse/storage.py",
-        "assets/artwork.jpg",
-        "assets/logo.jpg",
-        "assets/logo.png",
-        "assets/screenshots/2026-10-28-index.png",
-        "assets/social-preview.jpg",
-        "assets/social-preview.png"
-      ],
-      "status": "in_progress",
-      "timestamp": 1793385007.2389202,
-      "timestamp_str": "2026-10-30 21:30:07",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 1",
-      "phase_num": 3,
-      "description": "Reforge stage 1: stage 1 host review reviewed; run completed; coverage 2110/2110",
-      "files_affected": [],
-      "status": "completed",
-      "timestamp": 1793386138.234848,
-      "timestamp_str": "2026-10-30 21:48:58",
-      "agent": "opencode"
     }
   ]
 }

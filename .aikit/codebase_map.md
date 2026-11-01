@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `41`
-- **Total Classes**: `73`
-- **Total Top-Level Functions**: `97`
-- **Total Class Methods**: `697`
-- **Total Source Lines**: `15917`
+- **Total Python Modules**: `44`
+- **Total Classes**: `77`
+- **Total Top-Level Functions**: `102`
+- **Total Class Methods**: `726`
+- **Total Source Lines**: `16630`
 
 ---
 
@@ -42,13 +42,15 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1416` lines (`65557` bytes)
+**Size**: `1504` lines (`69595` bytes)
 
 **Functions:**
 - `def setup_terminal_encoding()` - *Ensure stdout and stderr handle utf-8 safely across all Windows code pages.*
 - `def safe_print(msg)` - *Print message to stdout with graceful fallback for legacy terminal code pages.*
 - `def get_default_data_dir()`
 - `def render_trace_bar(trace_percent, width)`
+- `def topology_token(engine, node_id)` - *Compact fixed-width token for the ASCII topology map.*
+- `def render_topology_map(engine)` - *Fixed-layout ASCII topology mirroring the web matrix slots.*
 - `def print_hud(engine)`
 - `def print_contract(engine)`
 - `def print_hunters(engine)`
@@ -108,7 +110,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `3773` lines (`175936` bytes)
+**Size**: `3972` lines (`185877` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -144,6 +146,11 @@
   - Method `.mitigated_trace(raw_amount)` - *Return the trace actually added after passive ICE dampener, stance, and proxy mitigation.*
   - Method `.extraction_surge()` - *Black ICE surge applied while pulling the jack, before the link is cut.*
   - Method `.extraction_risk()` - *Preview the extraction surge and whether it would burn an active run.*
+  - Method `.combo_rate_preview()` - *Return the current and next-breach combo bonus rates (informational only).*
+  - Method `.action_forecast(action, target)` - *Preview CPU/trace/turn costs for one action without mutating any state.*
+  - Method `.hop_latency_ms(node)` - *Deterministic per-hop latency: base + security tiers + stable jitter.*
+  - Method `.trace_route(target)` - *Trace the hop path from the current host to a target (read-only).*
+  - Method `.host_fingerprint(target)` - *Summarize a host's identity: OS, uptime, patch train, ports, staff shifts.*
   - Method `.add_trace(raw_amount)` - *Increase system trace, mitigated by ICE dampeners. 100% triggers lockout & loss of loot.*
   - Method `.regenerate_cpu(amount)` - *Cool down cyberdeck processing units and recover CPU cycles.*
   - Method `.advance_turn()` - *Advance the run clock one turn: daemons harvest, then the living grid reacts.*
@@ -247,7 +254,7 @@
 ### [`cyberpulse/models.py`](cyberpulse/models.py)
 > *Domain models for CyberPulse cyberspace nodes, decks, contracts, and career profiles.*
 
-**Size**: `736` lines (`26790` bytes)
+**Size**: `842` lines (`32026` bytes)
 
 **Classes:**
 - `class NodeType`
@@ -323,6 +330,8 @@
   - Method `.from_dict(data)`
 
 **Functions:**
+- `def node_visual(node_type, status)` - *Return presentation metadata for a node type + status pair.*
+- `def entity_visual(key)` - *Return presentation metadata for contacts, rivals, hunters, shop, puzzles.*
 - `def apply_career_profile(deck, profile)` - *Apply persistent upgrades and synchronize banked funds into an active cyberdeck.*
 
 ---
@@ -330,9 +339,10 @@
 ### [`cyberpulse/network.py`](cyberpulse/network.py)
 > *Procedural cyberspace network generator with deterministic topology.*
 
-**Size**: `392` lines (`18541` bytes)
+**Size**: `436` lines (`20582` bytes)
 
 **Functions:**
+- `def host_fingerprint_fields(rng, node_type, security)` - *Derive deterministic host identity: OS, uptime, and patch train.*
 - `def generate_network(seed)` - *Generate a deterministic cyberspace infiltration network grid from seed.*
 - `def _generate_side_hosts(rng, nodes)` - *Attach 2-3 seeded side hosts to the fixed campaign spine.*
 
@@ -404,7 +414,7 @@
 ### [`cyberpulse/server.py`](cyberpulse/server.py)
 > *Zero-dependency HTTP REST backend and static file server for CyberPulse Web Cyberdeck.*
 
-**Size**: `966` lines (`43027` bytes)
+**Size**: `989` lines (`44092` bytes)
 
 **Classes:**
 - `class CyberdeckSession` - *Encapsulates the stateful game session driving the Web Cyberdeck interface.*
@@ -865,6 +875,24 @@
 
 ---
 
+### [`tests/test_forecast.py`](tests/test_forecast.py)
+> *Failing-first tests for read-only action forecasts (no balance numbers change).*
+
+**Size**: `89` lines (`3571` bytes)
+
+**Classes:**
+- `class TestActionForecast`
+  - Method `.test_scan_forecast_matches_engine_costs_and_is_pure()`
+  - Method `.test_overdrive_forecast_and_block_at_high_trace()`
+  - Method `.test_spoof_forecast_reduces_trace()`
+  - Method `.test_quickhack_forecast_per_security_tier()`
+  - Method `.test_unknown_action_is_rejected()`
+  - Method `.test_combo_rate_preview_caps_at_fifty_percent()`
+  - Method `.test_jackout_forecast_matches_extraction_risk()`
+  - Method `.test_cli_forecast_command_reports_costs()`
+
+---
+
 ### [`tests/test_grid.py`](tests/test_grid.py)
 > *Integration tests for living-grid simulation wired into the game engine.*
 
@@ -1014,7 +1042,7 @@
 ### [`tests/test_server.py`](tests/test_server.py)
 > *Unit and integration tests for CyberPulse HTTP REST server.*
 
-**Size**: `1126` lines (`49309` bytes)
+**Size**: `1141` lines (`49975` bytes)
 
 **Classes:**
 - `class TestCyberdeckServer`
@@ -1053,6 +1081,8 @@
   - Method `.test_victory_settles_career_once()`
   - Method `.test_game_over_settles_failed_run_once()`
   - Method `.test_craft_persists_banked_spend()`
+  - Method `.test_forecast_endpoint_matches_engine_costs()`
+  - Method `.test_route_endpoint_reports_hops()`
   - Method `.test_web_settlement_does_not_delete_unowned_save()`
   - Method `.test_state_includes_story_quests_and_contacts()`
   - Method `.test_overdrive_action()`
@@ -1118,6 +1148,24 @@
   - Method `.test_market_markup_raises_prices()`
   - Method `.test_market_discount_lowers_prices()`
   - Method `.test_invalid_market_multiplier_falls_back_to_base_price()`
+
+---
+
+### [`tests/test_sim_life.py`](tests/test_sim_life.py)
+> *Failing-first tests for lifelike simulation: routes, fingerprints, work shifts.*
+
+**Size**: `76` lines (`3242` bytes)
+
+**Classes:**
+- `class TestSimLife`
+  - Method `.test_nodes_carry_host_fingerprint()`
+  - Method `.test_fingerprint_defaults_backfill_legacy_nodes()`
+  - Method `.test_employees_have_work_shifts()`
+  - Method `.test_legacy_employee_defaults_to_day_shift()`
+  - Method `.test_traceroute_reports_hops_and_latency()`
+  - Method `.test_traceroute_is_deterministic()`
+  - Method `.test_traceroute_rejects_unknown_host()`
+  - Method `.test_host_fingerprint_summarizes_target()`
 
 ---
 
@@ -1199,6 +1247,23 @@
   - Method `.test_version_is_semver()`
   - Method `.test_pyproject_version_matches_the_package()`
   - Method `.test_cli_version_flag_reports_the_package_version()`
+
+---
+
+### [`tests/test_visuals.py`](tests/test_visuals.py)
+> *Unit tests for presentation sprite registries and the CLI topology map.*
+
+**Size**: `73` lines (`2627` bytes)
+
+**Classes:**
+- `class TestVisualRegistries`
+  - Method `.test_every_node_type_has_sprite()`
+  - Method `.test_node_status_overlay_keeps_base_shape()`
+  - Method `.test_entity_shop_puzzle_world_tables_nonempty()`
+  - Method `.test_entity_visual_falls_back_without_throwing()`
+- `class TestTopologyMap`
+  - Method `.test_fixed_slots_and_current_marker()`
+  - Method `.test_unknown_node_renders_placeholder()`
 
 ---
 

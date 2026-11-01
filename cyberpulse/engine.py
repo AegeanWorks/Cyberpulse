@@ -970,6 +970,205 @@ class GameEngine:
             "lethal": projected >= 100,
         }
 
+    def combo_rate_preview(self) -> Dict[str, Any]:
+        """Return the current and next-breach combo bonus rates (informational only)."""
+        current = min(0.50, 0.10 * max(0, self.state.combo_streak))
+        nxt = min(0.50, 0.10 * (max(0, self.state.combo_streak) + 1))
+        return {
+            "streak": self.state.combo_streak,
+            "current_rate": round(current, 2),
+            "next_rate": round(nxt, 2),
+            "unbanked_at_risk": self.state.unbanked_creds,
+        }
+
+    def action_forecast(self, action: Any, target: Any = "") -> Dict[str, Any]:
+        """Preview CPU/trace/turn costs for one action without mutating any state.
+
+        Read-only balance transparency: every number is derived from the same
+        cost formulas the mutating action uses (via mitigated_trace), so the
+        preview can never drift from reality. Unknown or illegal actions
+        return ok False with a reason.
+        """
+        act = str(action or "").strip().lower()
+        if self.state.is_game_over:
+            return {"ok": False, "action": act, "reason": "System lockout in effect."}
+        if self.state.is_jacked_out:
+            return {"ok": False, "action": act, "reason": "Terminal session jacked out."}
+        if self.state.is_victory:
+            return {"ok": False, "action": act, "reason": "Mission already complete."}
+
+        if act == "scan":
+            return {
+                "ok": True, "action": act, "cpu_delta": 1,
+                "trace_gain": self.mitigated_trace(5), "turns": 1,
+                "notes": "Reveals adjacent nodes; +1 CPU (capped at max).",
+            }
+        if act == "probe":
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": 1, "trace_gain": self.mitigated_trace(4), "turns": 1,
+                "notes": "Lists open ports; +1 CPU (capped at max).",
+            }
+        if act == "overdrive":
+            if self.deck.cpu_cycles < 2:
+                return {"ok": False, "action": act, "reason": "Need 2 CPU."}
+            if self.state.trace_percent >= 92:
+                return {"ok": False, "action": act, "reason": "Trace too high."}
+            return {
+                "ok": True, "action": act, "cpu_delta": -2,
+                "trace_gain": self.mitigated_trace(8), "turns": 0,
+                "notes": "+1 combo, +10 Creds unbanked.",
+            }
+        if act in ("spoof", "spoof_ip"):
+            if self.deck.cpu_cycles < 3:
+                return {"ok": False, "action": act, "reason": "Need 3 CPU."}
+            if self.state.trace_percent <= 0:
+                return {"ok": False, "action": act, "reason": "Trace already 0%."}
+            return {
+                "ok": True, "action": act, "cpu_delta": -3, "trace_gain": 0,
+                "trace_reduction": min(25, self.state.trace_percent),
+                "projected_trace": max(0, self.state.trace_percent - 25),
+                "turns": 0, "notes": "Drops trace up to 25%; scrambles hunters 2 turns.",
+            }
+        if act in ("lay_low", "wait"):
+            try:
+                turns = max(1, min(3, int(str(target or "1").strip() or "1")))
+            except (TypeError, ValueError):
+                turns = 1
+            room = max(0, self.deck.max_cpu - self.deck.cpu_cycles)
+            return {
+                "ok": True, "action": act, "cpu_delta": min(turns, room),
+                "trace_gain": 0, "turns": turns,
+                "notes": "Grid keeps moving (patrol, hunters, ambient).",
+            }
+        if act == "quickhack":
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            if node.status == NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Already breached."}
+            gate = self._story_gate_reason(node)
+            if gate:
+                return {"ok": False, "action": act, "reason": gate}
+            lockdown = self._lockdown_reason(node)
+            if lockdown:
+                return {"ok": False, "action": act, "reason": lockdown}
+            curr = self.get_current_node()
+            if node.node_id not in curr.connected_ids and node.node_id != curr.node_id:
+                return {"ok": False, "action": act, "reason": "Not adjacent."}
+            if node.security_level > 2:
+                return {
+                    "ok": False, "action": act, "target": node.node_id,
+                    "trace_gain": self.mitigated_trace(6), "turns": 0,
+                    "reason": "Tier 3+ ICE resists quickhack.",
+                }
+            cpu_cost = 2 + node.security_level
+            if self.deck.cpu_cycles < cpu_cost:
+                return {"ok": False, "action": act, "reason": f"Need {cpu_cost} CPU."}
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -cpu_cost,
+                "trace_gain": self.mitigated_trace(10 + node.security_level * 4),
+                "turns": 1, "notes": "Skips the mini-game; pays full breach trace.",
+            }
+        if act == "jackout":
+            risk = self.extraction_risk()
+            return {
+                "ok": True, "action": act, "cpu_delta": 0,
+                "trace_gain": risk["surge"], "turns": 0,
+                "projected_trace": risk["projected_trace"],
+                "lethal": risk["lethal"], "notes": "Banks all unbanked loot.",
+            }
+        return {"ok": False, "action": act, "reason": f"Unknown action '{act}'."}
+
+    @staticmethod
+    def hop_latency_ms(node: Any) -> int:
+        """Deterministic per-hop latency: base + security tiers + stable jitter."""
+        base = 8 + max(1, int(getattr(node, "security_level", 1))) * 3
+        jitter = abs(hash(getattr(node, "node_id", "?"))) % 7
+        return base + jitter
+
+    def trace_route(self, target: Any = "") -> Dict[str, Any]:
+        """Trace the hop path from the current host to a target (read-only)."""
+        node = self.find_node(str(target or ""))
+        if node is None:
+            return {"ok": False, "reason": f"No such host '{target}'."}
+        start = self.state.current_node_id
+        if node.node_id == start:
+            hop = {"node_id": node.node_id, "hostname": node.hostname,
+                   "ip_address": node.ip_address, "latency_ms": self.hop_latency_ms(node)}
+            return {"ok": True, "target": node.node_id, "hops": [hop],
+                    "total_latency_ms": hop["latency_ms"], "hop_count": 1}
+        prev: Dict[str, Optional[str]] = {start: None}
+        queue = [start]
+        while queue:
+            current = queue.pop(0)
+            cur_node = self.nodes.get(current)
+            if cur_node is None:
+                continue
+            for nxt in cur_node.connected_ids:
+                if nxt not in prev and nxt in self.nodes:
+                    prev[nxt] = current
+                    queue.append(nxt)
+        if node.node_id not in prev:
+            return {"ok": False, "reason": "Target unreachable from current subnet."}
+        path = []
+        cursor: Optional[str] = node.node_id
+        while cursor is not None:
+            path.append(cursor)
+            cursor = prev[cursor]
+        path.reverse()
+        hops = []
+        total = 0
+        for nid in path:
+            hop_node = self.nodes[nid]
+            latency = self.hop_latency_ms(hop_node)
+            total += latency
+            hops.append({"node_id": nid, "hostname": hop_node.hostname,
+                         "ip_address": hop_node.ip_address,
+                         "node_type": hop_node.node_type,
+                         "security_level": hop_node.security_level,
+                         "latency_ms": latency})
+        return {"ok": True, "target": node.node_id, "hops": hops,
+                "total_latency_ms": total, "hop_count": len(hops)}
+
+    def host_fingerprint(self, target: Any = "") -> Dict[str, Any]:
+        """Summarize a host's identity: OS, uptime, patch train, ports, staff shifts."""
+        node = self.find_node(str(target or ""))
+        if node is None:
+            return {"ok": False, "reason": f"No such host '{target}'."}
+        try:
+            current_shift = shift_name(self.state.world.minute)
+        except (AttributeError, TypeError, ValueError):  # hygiene: clock glitch never blocks recon
+            current_shift = "Unknown"
+        shift_key = str(current_shift or "").strip().lower()
+        on_shift = 0
+        by_shift: Dict[str, int] = {"day": 0, "night": 0, "swing": 0}
+        for emp in node.employees:
+            ws = str(getattr(emp, "work_shift", "day") or "day").lower()
+            by_shift[ws] = by_shift.get(ws, 0) + 1
+            day_hours = "morning" in shift_key or "afternoon" in shift_key
+            night_hours = "evening" in shift_key or "late" in shift_key
+            if ws == "swing" or (ws == "day" and day_hours) or (ws == "night" and night_hours):
+                on_shift += 1
+        return {
+            "ok": True, "node_id": node.node_id, "hostname": node.hostname,
+            "ip_address": node.ip_address, "node_type": node.node_type,
+            "security_level": node.security_level, "status": node.status,
+            "os_name": getattr(node, "os_name", "Unknown OS"),
+            "uptime_hours": getattr(node, "uptime_hours", 0),
+            "uptime_days": round(getattr(node, "uptime_hours", 0) / 24, 1),
+            "patch_level": getattr(node, "patch_level", "patch-unknown"),
+            "open_ports": len(node.ports or []),
+            "current_shift": current_shift,
+            "employees_on_shift": on_shift,
+            "employees_total": len(node.employees or []),
+            "shifts": by_shift,
+        }
+
     def add_trace(self, raw_amount: int) -> None:
         """Increase system trace, mitigated by ICE dampeners. 100% triggers lockout & loss of loot."""
         amount = self.mitigated_trace(raw_amount)

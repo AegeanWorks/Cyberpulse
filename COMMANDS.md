@@ -7,7 +7,8 @@
 | `myip` / `whoami` | Display player's local CyberDeck identity (`10.99.0.2` / `rig.netrunner.local`) | Virtual localhost identity & rig telemetry |
 | `myfiles` / `ls local` | List files on player's local CyberDeck drive (`/home/deck`, `/bin`, `/loot`) | Local rig file inspection & stolen loot archive |
 | `cat <file>` | Inspect local cyberdeck files or remote breached host files | Data surveillance & loot inspection |
-| `probe <ip>` / `nmap <ip>` | Scan open network ports, service banners, and software versions | Reconnaissance & vulnerability detection |
+| `probe <ip>` / `nmap <ip>` | Scan open network ports, service banners, and software versions; reports OS, uptime, patch train, and staff on shift | Reconnaissance & vulnerability detection |
+| `traceroute <ip>` / `route <ip>` | Trace hop path and per-hop latency from the active terminal to the target | Route planning & network topography |
 | `firewall <ip>` / `fw` | Inspect target host network firewall rules and packet filtering policies | Perimeter security intelligence |
 | `bypass <ip> <port> [m]` | Bypass blocked firewall port via `knock`, `fragment`, or `tunnel` | Ingress filtering bypass & packet crafting |
 | `av <ip>` / `edr` | Inspect active Antivirus/EDR engine, alert level, and daemon quarantine log | Endpoint detection & response intelligence |
@@ -29,6 +30,7 @@
 | `overdrive` | Burn 2 CPU and 8% trace to stack +1 combo and +10 unbanked credits | Voluntary risk, combo priming & dopamine anticipation |
 | `stance <mode>` / `proxy <ip>` / `quickhack <ip>` / `intel <reveal\|forge>` | Shift deck stance, route a proxy hop, instant-breach a tier 1-2 host, or spend threat intel | Tactical resource & risk modulation |
 | `lay_low [1-3]` / `wait` | Ghost the connection for 1-3 turns: +1 CPU and up to -2% trace per turn while the grid keeps moving | Downtime recovery & shift-aware risk management |
+| `forecast <action> [target]` / `preview` / `odds` | Preview CPU/trace/turn costs before committing (`scan`, `probe`, `overdrive`, `spoof`, `lay_low`, `quickhack`, `jackout`) | Risk transparency & informed push-your-luck |
 | `world` / `city` / `grid` | Show the in-game clock, shift doctrine, grid alert, market index, daily modifier, and latest headlines | Living world awareness & consequence telemetry |
 | `news` / `wire` | Read the generated grid news wire (`news 20` for a longer feed) | Diegetic feedback & attribution of events |
 | `hunter` / `radar` | Display active NetWatch Hunter threat assessment, location, distance, and scent | Counter-surveillance & proximity telemetry |

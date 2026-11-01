@@ -83,6 +83,7 @@ cyberpulse/
     ├── test_difficulty.py
     ├── test_engine.py
     ├── test_factions.py
+    ├── test_forecast.py
     ├── test_grid.py
     ├── test_init.py
     ├── test_models.py
@@ -93,9 +94,11 @@ cyberpulse/
     ├── test_scoring.py
     ├── test_server.py
     ├── test_shop.py
+    ├── test_sim_life.py
     ├── test_storage.py
     ├── test_tutorial.py
     ├── test_version.py
+    ├── test_visuals.py
     └── test_world.py
 ```
 
@@ -165,7 +168,7 @@ python -m cyberpulse.cli --daily
 
 ### In-Game Commands (Authentic Simulation & Tactical Netrunning)
 
-The full reference of 54 commands, with each one's action and simulation role, is in [COMMANDS.md](COMMANDS.md).
+The full reference of 56 commands, with each one's action and simulation role, is in [COMMANDS.md](COMMANDS.md).
 
 ### 🕹️ Authentic Cyber Warfare Infiltration Workflow
 1. **Network Reconnaissance**: Discover network topology with `scan` or read host configuration files with `cat /etc/hosts`. Scan active network ports using `probe 192.168.1.10`.

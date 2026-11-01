@@ -733,12 +733,41 @@ function renderHUD(data) {
   if (trace >= 80 && trace < 100) {
     sfx.alarm();
     addTerminalLog(`⚠️ CRITICAL TRACE: ${trace}%! Black ICE locks tightening!`, "danger");
+    const stage = document.getElementById("matrix-stage");
+    if (stage && motionSafe()) {
+      stage.classList.remove("trace-shake");
+      void stage.offsetWidth;
+      stage.classList.add("trace-shake");
+    }
   }
 
   // Unbanked & Career Bank
   document.getElementById("val-loot").textContent = `${gState.unbanked_creds} CR`;
   document.getElementById("val-bank").textContent = `${career.banked_creds} CR`;
-  document.getElementById("val-combo").textContent = `x${gState.combo_streak || 0}`;
+  const comboEl = document.getElementById("val-combo");
+  const prevCombo = state._prevCombo || 0;
+  comboEl.textContent = `x${gState.combo_streak || 0}`;
+  if ((gState.combo_streak || 0) > prevCombo && motionSafe()) {
+    comboEl.classList.remove("combo-pop");
+    void comboEl.offsetWidth;
+    comboEl.classList.add("combo-pop");
+  }
+  state._prevCombo = gState.combo_streak || 0;
+  const cpuBox = document.getElementById("gauge-cpu");
+  if (cpuBox) cpuBox.classList.toggle("low-cpu", (deck.cpu_cycles || 0) <= 2);
+  const vignette = document.getElementById("damage-vignette");
+  if (vignette) {
+    const heat = Math.max(0, Math.min(1, trace / 100));
+    vignette.style.opacity = (heat * 0.55).toFixed(2);
+  }
+  if (motionSafe() && (gState.combo_streak === 5 || gState.combo_streak === 10) && gState.combo_streak > (prevCombo || 0)) {
+    const stage = document.getElementById("matrix-stage");
+    if (stage) {
+      stage.classList.add("breach-flash");
+      setTimeout(() => stage.classList.remove("breach-flash"), 320);
+    }
+    addTerminalLog(`COMBO MILESTONE x${gState.combo_streak}: next breach +${Math.min(50, 10 * gState.combo_streak)}%. Bank before the grid answers.`, "success");
+  }
   const intelEl = document.getElementById("val-intel");
   if (intelEl) {
     const intel = deck.threat_intel_count || 0;
@@ -749,6 +778,21 @@ function renderHUD(data) {
 
   // Living grid ticker: clock, alert, market, and the newest headline
   renderGridTicker(data.world || gState.world);
+  {
+    const damp = (data.deck && data.deck.ice_dampener_level) || 0;
+    const stance = (data.deck && data.deck.operating_stance) || "balanced";
+    const proxies = (data.deck && data.deck.proxy_chain ? data.deck.proxy_chain.length : 0);
+    const mit = `Mitigation: dampener L${damp}, ${stance}, ${proxies}/3 proxies.`;
+    const setTitle = (id, text) => { const el = document.getElementById(id); if (el) el.title = `${text} ${mit}`; };
+    setTitle("btn-scan", "SCAN: +1 CPU, +5% raw trace, 1 turn. Reveals adjacent nodes.");
+    setTitle("btn-overdrive", "OVERDRIVE: -2 CPU, +8% raw trace, +1 combo, +10 CR unbanked. Blocked at 92%+ trace.");
+    setTitle("btn-spoof", "SPOOF: -3 CPU, trace -25% (floor 0%), scrambles hunters 2 turns.");
+    setTitle("btn-lay-low", "LAY LOW: +1 CPU/turn for 1-3 turns; the grid keeps moving.");
+    const comboEl2 = document.getElementById("val-combo");
+    if (comboEl2) comboEl2.title = `Next breach +${Math.min(50, 10 * (gState.combo_streak + 1))}%; combo breaks on any detected failure.`;
+  }
+
+  updateMatrixCoords();
 
   renderTutorial(data);
 
@@ -1232,6 +1276,7 @@ async function handleReset() {
     addTerminalLog("Rebooted terminal with fresh cyberspace seed.", "info");
     state.data = res.state;
     state.selectedNodeId = null;
+    state._seenBreaches = {};
     closePuzzleBay();
     renderEmptyTargetCard();
     renderHUD(res.state);
@@ -1250,6 +1295,7 @@ async function handleReplaySeed(seed) {
     addTerminalLog(`Replaying archived seed ${seed}.`, "info");
     state.data = res.state;
     state.selectedNodeId = null;
+    state._seenBreaches = {};
     closePuzzleBay();
     renderEmptyTargetCard();
     renderHUD(res.state);
@@ -1272,6 +1318,7 @@ async function handleDailyReset() {
     addTerminalLog(res.message || "Daily run started.", "info");
     state.data = res.state;
     state.selectedNodeId = null;
+    state._seenBreaches = {};
     closePuzzleBay();
     renderEmptyTargetCard();
     renderHUD(res.state);
@@ -1498,22 +1545,39 @@ function initMatrixCanvas() {
   const canvas = document.getElementById("matrix-canvas");
   const ctx = canvas.getContext("2d");
 
+  function hitNode(clientX, clientY) {
+    const pt = toDesignPoint(clientX, clientY);
+    for (const [nid, pos] of Object.entries(NODE_POSITIONS)) {
+      if (!state.data || !state.data.nodes[nid]) continue;
+      if (Math.hypot(pt.x - pos.x, pt.y - pos.y) <= 28) return nid;
+    }
+    return null;
+  }
   // Mouse interaction
   canvas.addEventListener("click", (e) => {
     sfx.init();
-    const pt = toDesignPoint(e.clientX, e.clientY);
-
-    // Hit test against nodes
-    for (const [nid, pos] of Object.entries(NODE_POSITIONS)) {
-      if (!state.data || !state.data.nodes[nid]) continue;
-      const dist = Math.hypot(pt.x - pos.x, pt.y - pos.y);
-      if (dist <= 28) {
-        selectNode(nid);
-        sfx.click();
-        return;
-      }
+    const nid = hitNode(e.clientX, e.clientY);
+    if (nid) {
+      selectNode(nid);
+      sfx.click();
     }
   });
+  canvas.addEventListener("mousemove", (e) => {
+    const nid = hitNode(e.clientX, e.clientY);
+    canvas.style.cursor = nid ? "pointer" : "crosshair";
+    const coords = document.getElementById("matrix-coords");
+    if (coords && state.data && nid && state.data.nodes[nid]) {
+      const n = state.data.nodes[nid];
+      coords.textContent = `HOVER // ${(n.hostname || n.node_id).toUpperCase()} · ${n.ip_address || "--"} · ${n.node_type} · SEC ${n.security_level}`;
+    } else if (!state.selectedNodeId) {
+      updateMatrixCoords();
+    } else if (coords && state.data) {
+      updateMatrixCoords();
+    }
+  });
+  canvas.addEventListener("mouseleave", () => updateMatrixCoords());
+
+  updateMatrixCoords();
 
   // Continuous animation loop
   function renderLoop(time) {
@@ -1523,8 +1587,30 @@ function initMatrixCanvas() {
   state.animFrameId = requestAnimationFrame(renderLoop);
 }
 
+function updateMatrixCoords() {
+  const coords = document.getElementById("matrix-coords");
+  const chip = document.getElementById("matrix-sel-ip");
+  if (!coords || !state.data) return;
+  const nodes = Object.values(state.data.nodes || {});
+  const breached = nodes.filter((n) => n.status === "BREACHED").length;
+  coords.textContent = `GRID // ${nodes.length} NODES · ${breached} OPEN`;
+  if (!chip) return;
+  const sel = state.selectedNodeId ? state.data.nodes[state.selectedNodeId] : null;
+  if (!sel) {
+    chip.textContent = "NO TARGET";
+    chip.classList.remove("hot", "open");
+    chip.title = "Selected host address";
+    return;
+  }
+  chip.textContent = `${sel.ip_address || "--"} · ${sel.hostname || sel.node_id}`;
+  chip.title = `${sel.name} // ${sel.node_type} // SEC ${sel.security_level} // ${sel.status}`;
+  chip.classList.toggle("hot", sel.status === "LOCKED");
+  chip.classList.toggle("open", sel.status === "BREACHED");
+}
+
 function selectNode(nodeId) {
   state.selectedNodeId = nodeId;
+  updateMatrixCoords();
   updateTargetCard(nodeId);
 }
 
@@ -1547,6 +1633,33 @@ function updateTargetCard(nodeId) {
   document.getElementById("target-sec").textContent = `LEVEL ${node.security_level}`;
   document.getElementById("target-ram").textContent = `${node.security_level * 16}MB (Deck: ${deck.ram_mb}MB)`;
   document.getElementById("target-trace").textContent = `+${node.trace_rate}%`;
+  const osEl = document.getElementById("target-os");
+  if (osEl) {
+    osEl.textContent = node.os_name || "Unknown OS";
+    osEl.title = `Patch train: ${node.patch_level || "patch-unknown"}`;
+  }
+  const upEl = document.getElementById("target-uptime");
+  if (upEl) {
+    const hrs = Number(node.uptime_hours || 0);
+    upEl.textContent = hrs >= 24 ? `${(hrs / 24).toFixed(1)}d` : `${hrs}h`;
+    upEl.title = `${hrs}h since last reboot - ${node.patch_level || "patch-unknown"}`;
+  }
+  const routeEl = document.getElementById("target-route");
+  if (routeEl) {
+    routeEl.textContent = "…";
+    fetch(`/api/route?target=${encodeURIComponent(nodeId)}`)
+      .then((r) => r.json())
+      .then((route) => {
+        if (route && route.ok) {
+          routeEl.textContent = `${route.hop_count} hops · ${route.total_latency_ms}ms`;
+          routeEl.title = route.hops.map((h, i) => `${i + 1}. ${h.hostname} (${h.ip_address}) +${h.latency_ms}ms`).join("\n");
+        } else {
+          routeEl.textContent = "unreachable";
+          routeEl.title = (route && route.reason) || "No route from current host.";
+        }
+      })
+      .catch(() => { routeEl.textContent = "--"; });
+  }
 
   // Firewall Status Indicator
   const fwEl = document.getElementById("target-firewall");
@@ -1631,6 +1744,16 @@ function updateTargetCard(nodeId) {
   }
   if (btnQuickhack) {
     btnQuickhack.disabled = isBreached || !isAdjacent || lockedDown || node.security_level > 2;
+    if (!btnQuickhack.disabled) {
+      fetch(`/api/forecast?action=quickhack&target=${encodeURIComponent(nodeId)}`)
+        .then((r) => r.json())
+        .then((fc) => {
+          if (fc && fc.ok) {
+            btnQuickhack.title = `Quickhack ${node.hostname}: ${-fc.cpu_delta} CPU, +${fc.trace_gain}% trace (mitigated), 1 turn. Skips the mini-game.`;
+          }
+        })
+        .catch(() => {});
+    }
     btnQuickhack.title = node.security_level > 2
       ? "Quickhack cannot pierce security tier 3+; probe and exploit instead."
       : "Instant breach: steep CPU and trace cost, no mini-game.";
@@ -1817,12 +1940,152 @@ async function loadFilesystemView(nodeId) {
   }
 }
 
+const NODE_SPRITES = {
+  GATEWAY: { shape: "diamond", glow: "185, 100%, 55%", core: "hsl(185, 100%, 62%)" },
+  FIREWALL: { shape: "hexagon", glow: "42, 100%, 60%", core: "hsl(42, 100%, 62%)" },
+  DATA_VAULT: { shape: "vault", glow: "145, 95%, 58%", core: "hsl(145, 95%, 60%)" },
+  ICE_DEFENSE: { shape: "triangle", glow: "352, 100%, 64%", core: "hsl(352, 100%, 64%)" },
+  CENTRAL_CORE: { shape: "core", glow: "315, 100%, 68%", core: "hsl(315, 100%, 70%)" },
+};
+
+const ENTITY_SPRITES = {
+  mira: { glyph: "\u25C6", cls: "avatar-fixer" },
+  kilo: { glyph: "\u2B22", cls: "avatar-techie" },
+  archivist: { glyph: "\u2524", cls: "avatar-broker" },
+  zero: { glyph: "\u2B23", cls: "avatar-zero" },
+  Vex: { glyph: "\u2715", cls: "avatar-rival-vex" },
+  Marrow: { glyph: "\u25CD", cls: "avatar-rival-marrow" },
+  Static: { glyph: "\u26A1", cls: "avatar-rival-static" },
+  hunter: { glyph: "\u25C9", cls: "avatar-hunter" },
+  logic_bomb: { glyph: "\u2738", cls: "item-exploit" },
+  ghost_protocol: { glyph: "\u25C8", cls: "item-exploit" },
+  overclock_cpu: { glyph: "\u26A1", cls: "item-hardware" },
+  expand_ram: { glyph: "\u2524", cls: "item-hardware" },
+  ice_dampener: { glyph: "\u2744", cls: "item-hardware" },
+  dead_mans_switch: { glyph: "\u26E8", cls: "item-consumable" },
+};
+
+function avatarHTML(key, fallback) {
+  const meta = ENTITY_SPRITES[key] || ENTITY_SPRITES[fallback] || { glyph: "\u25C7", cls: "avatar-unknown" };
+  return `<span class="entity-avatar ${meta.cls}" aria-hidden="true">${meta.glyph}</span>`;
+}
+
+function puzzleFlash(kind) {
+  if (!motionSafe()) return;
+  const bay = document.getElementById("puzzle-bay");
+  if (!bay) return;
+  bay.classList.remove("flash-success", "flash-near", "shake");
+  void bay.offsetWidth;
+  bay.classList.add(kind === "success" ? "flash-success" : kind === "near" ? "flash-near" : "shake");
+  setTimeout(() => bay.classList.remove("flash-success", "flash-near", "shake"), 420);
+}
+
+function motionSafe() {
+  try {
+    return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (_) { return true; }
+}
+
+function traceBurst(sx, sy, color, n) {
+  const stage = document.getElementById("matrix-stage");
+  if (stage && motionSafe()) {
+    stage.classList.add("breach-flash");
+    setTimeout(() => stage.classList.remove("breach-flash"), 320);
+  }
+  if (!motionSafe()) return;
+  const vp = matrixViewport();
+  const inv = 1 / Math.max(0.001, vp.scale);
+  for (let i = 0; i < (n || 10); i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.6 + Math.random() * 2.2;
+    state.packetParticles.push({ x: (sx - vp.offX) * inv, y: (sy - vp.offY) * inv, vx: Math.cos(a) * sp * inv, vy: Math.sin(a) * sp * inv, life: 1, color });
+  }
+  if (state.packetParticles.length > 320) {
+    state.packetParticles.splice(0, state.packetParticles.length - 320);
+  }
+}
+
+function drawSpriteShape(ctx, shape, cx, cy, r, rot) {
+  ctx.beginPath();
+  if (shape === "diamond") {
+    ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r * 0.8, cy);
+    ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r * 0.8, cy);
+    ctx.closePath();
+  } else if (shape === "triangle") {
+    for (let i = 0; i < 3; i++) {
+      const a = (rot || 0) + i * (Math.PI * 2 / 3) - Math.PI / 2;
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  } else if (shape === "hexagon") {
+    for (let i = 0; i < 6; i++) {
+      const a = (rot || 0) + i * (Math.PI / 3);
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  } else if (shape === "vault") {
+    const w = r * 1.7, h = r * 1.4;
+    ctx.rect(cx - w / 2, cy - h / 2, w, h);
+  } else if (shape === "core") {
+    for (let i = 0; i < 8; i++) {
+      const a = (rot || 0) + i * (Math.PI / 4);
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  } else {
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  }
+}
+
+let lastBreachSig = "";
 function drawMatrix(ctx, time) {
   const view = matrixViewport();
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
   ctx.clearRect(0, 0, view.cssW, view.cssH);
 
+  if (!state.stars) {
+    state.stars = [];
+    for (let i = 0; i < 90; i++) {
+      state.stars.push({ x: Math.random() * DESIGN_W, y: Math.random() * DESIGN_H, r: 0.4 + Math.random() * 1.1, tw: Math.random() * Math.PI * 2 });
+    }
+  }
   if (!state.data) return;
+  // Deep-space backdrop: faint grid + drifting stars + horizontal scan sweep
+  ctx.save();
+  ctx.strokeStyle = 'rgba(110,170,200,0.05)';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx <= DESIGN_W; gx += 56) {
+    ctx.beginPath();
+    const gxPx = view.offX + gx * view.scale;
+    ctx.moveTo(gxPx, view.offY); ctx.lineTo(gxPx, view.offY + DESIGN_H * view.scale);
+    ctx.stroke();
+  }
+  for (let gy = 0; gy <= DESIGN_H; gy += 56) {
+    ctx.beginPath();
+    const gyPx = view.offY + gy * view.scale;
+    ctx.moveTo(view.offX, gyPx); ctx.lineTo(view.offX + DESIGN_W * view.scale, gyPx);
+    ctx.stroke();
+  }
+  for (const st of state.stars) {
+    const sa = motionSafe() ? 0.25 + 0.35 * Math.abs(Math.sin(time * 0.001 + st.tw)) : 0.3;
+    ctx.beginPath();
+    ctx.arc(view.offX + st.x * view.scale, view.offY + st.y * view.scale, st.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(150,210,240,' + sa.toFixed(2) + ')';
+    ctx.fill();
+  }
+  if (motionSafe()) {
+    const sweepY = view.offY + ((time * 0.03) % (DESIGN_H * view.scale + 80)) - 40;
+    const grad = ctx.createLinearGradient(0, sweepY - 26, 0, sweepY);
+    grad.addColorStop(0, 'rgba(90,220,255,0)');
+    grad.addColorStop(1, 'rgba(90,220,255,0.05)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(view.offX, sweepY - 26, DESIGN_W * view.scale, 26);
+  }
+  ctx.restore();
+
   const nodes = state.data.nodes;
   const currNodeId = state.data.state.current_node_id;
 
@@ -1857,14 +2120,24 @@ function drawMatrix(ctx, time) {
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Moving data packet dots along active connections
-      const packetPhase = (time * 0.0008 + (p1.x * 0.01)) % 1;
-      const px = x1 + (x2 - x1) * packetPhase;
-      const py = y1 + (y2 - y1) * packetPhase;
-      ctx.beginPath();
-      ctx.arc(px, py, 2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 255, 170, 0.55)";
-      ctx.fill();
+      // Flowing energy pulses: breached links glow green, sealed links dim cyan.
+      const breachedLink = nodes[nid] && nodes[cid] && nodes[nid].status === "BREACHED" && nodes[cid].status === "BREACHED";
+      const flow = motionSafe() ? time * 0.0009 : 0;
+      for (let k = 0; k < 2; k++) {
+        const packetPhase = (flow + (p1.x * 0.013) + k * 0.5) % 1;
+        const px = x1 + (x2 - x1) * packetPhase;
+        const py = y1 + (y2 - y1) * packetPhase;
+        const tail = 0.35 + 0.65 * Math.abs(Math.sin(packetPhase * Math.PI));
+        ctx.beginPath();
+        ctx.arc(px, py, breachedLink ? 2.6 : 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = breachedLink
+          ? `rgba(80, 255, 150, ${0.35 + 0.45 * tail})`
+          : `rgba(90, 220, 255, ${0.2 + 0.35 * tail})`;
+        ctx.shadowBlur = breachedLink ? 8 : 5;
+        ctx.shadowColor = breachedLink ? "rgba(80,255,150,0.8)" : "rgba(90,220,255,0.7)";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
   }
 
@@ -1880,46 +2153,83 @@ function drawMatrix(ctx, time) {
     const isBreached = node.status === "BREACHED";
     const isDiscovered = node.status === "DISCOVERED";
 
-    // Glowing Outer Ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, nodeR, 0, Math.PI * 2);
+    const sprite = NODE_SPRITES[node.node_type] || NODE_SPRITES.GATEWAY;
+    const pulse = motionSafe() ? Math.sin(time * 0.003 + pos.x * 0.05) : 0;
+    const breathe = 1 + pulse * 0.04;
+    const R = nodeR * breathe;
+    // Soft halo under every sprite
+    const halo = ctx.createRadialGradient(cx, cy, 2, cx, cy, R + 14);
+    if (isCurrent) { halo.addColorStop(0, "rgba(90,220,255,0.22)"); halo.addColorStop(1, "rgba(90,220,255,0)"); }
+    else if (isBreached) { halo.addColorStop(0, "rgba(80,255,150,0.20)"); halo.addColorStop(1, "rgba(80,255,150,0)"); }
+    else if (isDiscovered) { halo.addColorStop(0, "rgba(255,190,80,0.16)"); halo.addColorStop(1, "rgba(255,190,80,0)"); }
+    else { halo.addColorStop(0, "rgba(120,140,160,0.10)"); halo.addColorStop(1, "rgba(120,140,160,0)"); }
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 14, 0, Math.PI * 2); ctx.fill();
+    // Lockdown rotating dashed ring
+    const lockedDown = (node.lockdown_until_turn || -1) > ((state.data.state && state.data.state.turns_elapsed) || 0);
+    if (lockedDown) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,80,90,0.7)";
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([3, 5]);
+      ctx.lineDashOffset = motionSafe() ? -time * 0.02 : 0;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // Glowing Outer Ring (sprite-shaped)
     if (isCurrent) {
-      ctx.fillStyle = "rgba(0, 220, 255, 0.18)";
-      ctx.strokeStyle = "hsl(185, 100%, 55%)";
+      ctx.fillStyle = "rgba(90, 220, 255, 0.14)";
+      ctx.strokeStyle = "hsl(185, 100%, 62%)";
       ctx.lineWidth = 2;
     } else if (isBreached) {
-      ctx.fillStyle = "rgba(0, 255, 120, 0.13)";
-      ctx.strokeStyle = "hsl(140, 100%, 50%)";
+      ctx.fillStyle = "rgba(80, 255, 150, 0.12)";
+      ctx.strokeStyle = sprite.core;
       ctx.lineWidth = 1.6;
     } else if (isDiscovered) {
-      ctx.fillStyle = "rgba(255, 180, 0, 0.09)";
-      ctx.strokeStyle = "hsl(45, 100%, 52%)";
+      ctx.fillStyle = "rgba(255, 190, 80, 0.09)";
+      ctx.strokeStyle = "hsl(45, 100%, 60%)";
       ctx.lineWidth = 1.3;
     } else {
-      ctx.fillStyle = "rgba(40, 40, 40, 0.3)";
+      ctx.fillStyle = "rgba(40, 44, 54, 0.45)";
       ctx.strokeStyle = "rgba(140, 150, 165, 0.4)";
       ctx.lineWidth = 1;
     }
+    drawSpriteShape(ctx, sprite.shape, cx, cy, R, motionSafe() ? time * 0.0004 : 0);
     ctx.fill();
+    ctx.stroke();
+    // Inner etched glyph ring for type readability
+    drawSpriteShape(ctx, sprite.shape, cx, cy, R * 0.55, motionSafe() ? -time * 0.0006 : 0);
+    ctx.strokeStyle = isBreached || isCurrent ? sprite.core : "rgba(160,170,185,0.35)";
+    ctx.lineWidth = 1;
     ctx.stroke();
 
     // Node Center Icon / Circle
     ctx.beginPath();
     ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
     ctx.fillStyle = isCurrent
-      ? "hsl(185, 100%, 52%)"
-      : (isBreached ? "hsl(140, 100%, 50%)" : (isDiscovered ? "hsl(45, 100%, 52%)" : "#3c4450"));
+      ? "hsl(185, 100%, 60%)"
+      : (isBreached ? sprite.core : (isDiscovered ? "hsl(45, 100%, 58%)" : "#3c4450"));
+    ctx.shadowBlur = (isBreached || isCurrent) ? 10 : 0;
+    ctx.shadowColor = (isBreached || isCurrent) ? sprite.core : "transparent";
     ctx.fill();
+    ctx.shadowBlur = 0;
 
-    // Target Selection Halo
+    // Target Selection Halo (rotating corner brackets)
     if (isSelected) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, nodeR + 7, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-      ctx.lineWidth = 1.2;
-      ctx.setLineDash([4, 4]);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      const rr = R + 8;
+      const rot = motionSafe() ? time * 0.0012 : 0;
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(rot);
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 1.4;
+      for (let q = 0; q < 4; q++) {
+        const a0 = q * Math.PI / 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, a0, a0 + 0.5);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // Node Label & IP
@@ -1931,9 +2241,33 @@ function drawMatrix(ctx, time) {
     ctx.fillText(pos.label, cx, cy + nodeR + 14);
 
     ctx.font = `${ipSize}px 'Cascadia Mono', 'Consolas', monospace`;
-    ctx.fillStyle = isBreached
-      ? "rgba(80, 230, 150, 0.7)"
-      : (isDiscovered ? "rgba(255, 200, 80, 0.65)" : "rgba(140, 150, 165, 0.55)");
+    {
+      const ipText = node.ip_address || "";
+      const ipW = ctx.measureText(ipText).width;
+      const pillW = ipW + 10, pillH = ipSize + 7;
+      const px = cx - pillW / 2, py = cy + nodeR + 26 - pillH / 2 - 1;
+      ctx.fillStyle = isSelected
+        ? "rgba(10, 18, 24, 0.92)"
+        : isCurrent
+          ? "rgba(6, 20, 26, 0.85)"
+          : "rgba(4, 8, 12, 0.78)";
+      ctx.strokeStyle = isSelected
+        ? "rgba(255,255,255,0.7)"
+        : isCurrent
+          ? "hsl(185, 100%, 55%)"
+          : (isBreached ? "hsla(145, 95%, 58%, 0.5)" : (isDiscovered ? "hsla(45, 100%, 52%, 0.4)" : "rgba(140, 150, 165, 0.25)"));
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(px, py, pillW, pillH, 3);
+      else ctx.rect(px, py, pillW, pillH);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = isSelected || isCurrent
+      ? "hsl(185, 100%, 90%)"
+      : (isBreached
+        ? "rgba(140, 255, 190, 0.95)"
+        : (isDiscovered ? "rgba(255, 210, 110, 0.9)" : "rgba(180, 190, 205, 0.8)"));
     ctx.fillText(node.ip_address || "", cx, cy + nodeR + 26);
 
     if (isCurrent) {
@@ -1942,16 +2276,35 @@ function drawMatrix(ctx, time) {
       ctx.fillText("ACTIVE TERMINAL", cx, cy - nodeR - 10);
     }
 
+    // Breach celebration particles (fires once per newly breached node)
+    const breachSig = nid + ":" + (isBreached ? "1" : "0");
+    if (isBreached && lastBreachSig !== "__init__") {
+      state._seenBreaches = state._seenBreaches || {};
+      if (!state._seenBreaches[nid]) {
+        state._seenBreaches[nid] = true;
+        traceBurst(cx, cy, "120,255,170", 22);
+      }
+    }
     // Check if an active NetWatch Hunter is at this node
     const huntersAtNode = (state.data && state.data.world && state.data.world.hunters)
       ? state.data.world.hunters.filter(h => h.current_node_id === nid && h.status !== "neutralized")
       : [];
     if (huntersAtNode.length > 0) {
-      const pulse = Math.sin(time * 0.006) * 3;
+      const pulse = motionSafe() ? Math.sin(time * 0.006) * 3 : 0;
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(motionSafe() ? time * 0.001 : 0);
+      ctx.strokeStyle = "rgba(255, 30, 60, 0.9)";
+      ctx.lineWidth = 2;
+      const hr = nodeR + 10 + pulse;
+      for (let q = 0; q < 4; q++) {
+        const a0 = q * Math.PI / 2 + Math.PI / 4;
+        ctx.beginPath(); ctx.arc(0, 0, hr, a0, a0 + 0.42); ctx.stroke();
+      }
+      ctx.restore();
       ctx.beginPath();
       ctx.arc(cx, cy, nodeR + 8 + pulse, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 30, 60, 0.85)";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255, 30, 60, 0.35)";
+      ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.font = `700 8px 'Cascadia Mono', 'Consolas', monospace`;
@@ -1961,6 +2314,28 @@ function drawMatrix(ctx, time) {
         cx,
         cy - nodeR - (isCurrent ? 24 : 10)
       );
+    }
+    // Type tag under IP for fast scanning
+    ctx.font = `700 8px 'Cascadia Mono', 'Consolas', monospace`;
+    ctx.fillStyle = isBreached ? "rgba(140,255,190,0.75)" : "rgba(140,150,165,0.5)";
+    const spriteTag = (NODE_SPRITES[node.node_type] || NODE_SPRITES.GATEWAY).shape.toUpperCase();
+    ctx.fillText(spriteTag, cx, cy + nodeR + 37);
+  }
+  lastBreachSig = "__init__";
+  // Particle integrator (breach sparks drift and fade)
+  if (state.packetParticles.length) {
+    const dt = 1;
+    state.packetParticles = state.packetParticles.filter((pt) => pt.life > 0);
+    for (const pt of state.packetParticles) {
+      const vpx = view.offX + (pt.x / DESIGN_W) * view.cssW;
+      void vpx;
+      pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.96; pt.vy *= 0.96; pt.life -= 0.02;
+      const sxp = view.offX + pt.x * view.scale;
+      const syp = view.offY + pt.y * view.scale;
+      ctx.beginPath();
+      ctx.arc(sxp, syp, 2 * Math.max(0, pt.life), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${pt.color},${Math.max(0, pt.life).toFixed(2)})`;
+      ctx.fill();
     }
   }
 }
@@ -2188,37 +2563,54 @@ function startOscilloscopeAnimation() {
   if (oscTimer) cancelAnimationFrame(oscTimer);
 
   function drawOsc() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillStyle = "rgba(2, 6, 8, 0.32)";
     ctx.fillRect(0, 0, oscCanvas.width, oscCanvas.height);
+    // Scope graticule
+    ctx.strokeStyle = "rgba(120, 180, 200, 0.12)";
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < oscCanvas.width; gx += 36) {
+      ctx.beginPath(); ctx.moveTo(gx + 0.5, 0); ctx.lineTo(gx + 0.5, oscCanvas.height); ctx.stroke();
+    }
+    for (let gy = 0; gy < oscCanvas.height; gy += 24) {
+      ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(oscCanvas.width, gy + 0.5); ctx.stroke();
+    }
 
     const dialVal = parseFloat(document.getElementById("freq-slider").value);
     const midY = oscCanvas.height / 2;
+    const still = !motionSafe();
 
-    // Target Carrier Wave (Cyan)
+    // Target Carrier Wave (Cyan glow)
+    ctx.save();
+    ctx.shadowBlur = 8; ctx.shadowColor = "rgba(0,220,255,0.6)";
     ctx.beginPath();
-    ctx.strokeStyle = "rgba(0, 220, 255, 0.4)";
+    ctx.strokeStyle = "rgba(0, 220, 255, 0.55)";
     ctx.lineWidth = 1.5;
-    for (let x = 0; x < oscCanvas.width; x++) {
-      const y = midY + Math.sin(x * 0.05 + t * 0.05) * 30;
+    for (let x = 0; x < oscCanvas.width; x += 2) {
+      const y = midY + Math.sin(x * 0.05 + t * (still ? 0 : 0.05)) * 30;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.restore();
 
-    // Tuned Player Wave (Green)
+    // Tuned Player Wave (Green glow + alignment bloom)
+    const align = 1 - Math.min(1, Math.abs(dialVal - 50) / 30);
+    ctx.save();
+    ctx.shadowBlur = 6 + align * 12; ctx.shadowColor = "hsla(140,100%,55%,0.7)";
     ctx.beginPath();
-    ctx.strokeStyle = "hsl(140, 100%, 55%)";
+    ctx.strokeStyle = "hsl(140, 100%, 58%)";
     ctx.lineWidth = 2;
-    for (let x = 0; x < oscCanvas.width; x++) {
-      const y = midY + Math.sin(x * (dialVal * 0.001) + t * 0.05) * 35;
+    for (let x = 0; x < oscCanvas.width; x += 2) {
+      const y = midY + Math.sin(x * (dialVal * 0.001) + t * (still ? 0 : 0.05)) * 35;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    ctx.restore();
 
     t++;
     if (!document.getElementById("puzzle-frequency").classList.contains("hidden")) {
-      oscTimer = requestAnimationFrame(drawOsc);
+      if (motionSafe()) oscTimer = requestAnimationFrame(drawOsc);
     }
   }
   oscTimer = requestAnimationFrame(drawOsc);
@@ -2232,12 +2624,14 @@ async function handleTuneFrequency() {
 
   if (res.solved) {
     sfx.success();
+    puzzleFlash("success");
     addTerminalLog(res.message, "success");
     closePuzzleBay();
     refreshFullState();
   } else {
     if (res.near_miss) {
       sfx.nearMiss();
+      puzzleFlash("near");
       addTerminalLog("⚡ NEAR-MISS DETECTED! Resonance harmonic almost aligned!", "warn");
     } else {
       sfx.failure();
@@ -2307,6 +2701,7 @@ async function handleInjectBuffer() {
   } else {
     if (res.near_miss) {
       sfx.nearMiss();
+      puzzleFlash("near");
       addTerminalLog("⚡ NEAR-MISS! Primary buffer block aligned!", "warn");
     } else {
       sfx.failure();
@@ -2358,6 +2753,7 @@ async function handleGuessHash(word) {
   } else {
     if (res.near_miss) {
       sfx.nearMiss();
+      puzzleFlash("near");
       addTerminalLog("⚡ CRITICAL NEAR-MISS! Only 1 character off!", "warn");
     } else {
       sfx.failure();
@@ -2560,8 +2956,10 @@ function openContactsModal() {
     }
 
     card.className = "contact-card";
+    const av = avatarHTML(contact.contact_id, contact.name);
     card.innerHTML = `
       <div class="contact-head">
+        ${av}
         <div>
           <div class="contact-name">${contact.name}</div>
           <div class="contact-role">${contact.handle} // ${contact.role}</div>
@@ -2642,7 +3040,9 @@ async function openShopModal() {
       statusText = item.current_level > 0 ? "ARMED" : "ONE USE";
     }
 
+    const icon = avatarHTML(item.item_id, item.category);
     card.innerHTML = `
+      ${icon}
       <div class="shop-item-info">
         <div class="item-name">${item.name} (${statusText})</div>
         <div class="item-desc">${item.description}</div>
@@ -2851,7 +3251,11 @@ async function openRivalModal() {
 function renderRivalModal() {
   const rival = state.data && state.data.rival;
   const cpu = state.data && state.data.deck ? state.data.deck.cpu_cycles : 0;
-  document.getElementById("rival-name").textContent = rival ? rival.name : "NO ACTIVE RIVAL";
+  const rivalAv = document.getElementById("rival-name");
+  rivalAv.textContent = rival ? rival.name : "NO ACTIVE RIVAL";
+  if (rivalAv && rival) {
+    rivalAv.setAttribute("data-rival", rival.name);
+  }
   document.getElementById("rival-handle").textContent = rival ? `@${rival.handle} // SKILL ${rival.skill}/3` : "";
   document.getElementById("rival-tagline").textContent = rival ? rival.tagline : "";
   document.getElementById("rival-skill").textContent = rival ? `${rival.skill}/3` : "0/3";
@@ -3103,6 +3507,7 @@ function openSocialModal() {
         <div class="employee-name">${emp.name}</div>
         <div class="employee-role">${emp.role}</div>
         <span class="employee-badge ${badgeClass}">${emp.awareness_level}</span>
+        <span class="employee-shift shift-${(emp.work_shift || "day").toLowerCase()}">${(emp.work_shift || "day").toUpperCase()} SHIFT</span>
       `;
       card.addEventListener("click", () => {
         sfx.click();

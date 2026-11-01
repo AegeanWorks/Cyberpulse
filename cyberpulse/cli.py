@@ -17,7 +17,7 @@ from cyberpulse.achievements import ACHIEVEMENTS, achievement_names
 from cyberpulse.daily import daily_modifier, daily_run
 from cyberpulse.engine import GameEngine
 from cyberpulse.factions import rank_for
-from cyberpulse.models import CareerProfile, CyberDeck, NodeStatus, NodeType
+from cyberpulse.models import CareerProfile, CyberDeck, NodeStatus, NodeType, node_visual
 from cyberpulse.puzzles import BufferPuzzle, FrequencyPuzzle, HashCrackPuzzle
 from cyberpulse.shop import BlackMarketShop
 from cyberpulse.storage import SaveManager
@@ -53,9 +53,53 @@ def get_default_data_dir() -> Path:
 
 
 def render_trace_bar(trace_percent: int, width: int = 20) -> str:
-    filled = int((trace_percent / 100) * width)
+    filled = int((max(0, min(100, trace_percent)) / 100) * width)
     bar = "#" * filled + "-" * (width - filled)
-    return f"[{bar}] {trace_percent}%"
+    if trace_percent >= 80:
+        tier = "CRITICAL"
+    elif trace_percent >= 50:
+        tier = "HOT"
+    elif trace_percent >= 25:
+        tier = "WARM"
+    else:
+        tier = "COLD"
+    return f"[{bar}] {trace_percent}% {tier}"
+
+
+def topology_token(engine: GameEngine, node_id: str) -> str:
+    """Compact fixed-width token for the ASCII topology map."""
+    node = engine.nodes.get(node_id)
+    if node is None:
+        return "[   ]"
+    sprite = node_visual(node.node_type, node.status)
+    mark = "@" if node_id == engine.state.current_node_id else " "
+    if node.status == NodeStatus.BREACHED:
+        st = "B"
+    elif node.status == NodeStatus.DISCOVERED:
+        st = "D"
+    else:
+        st = "L"
+    return f"[{mark}{sprite.get('glyph', '*')}{st}]"
+
+
+def render_topology_map(engine: GameEngine) -> List[str]:
+    """Fixed-layout ASCII topology mirroring the web matrix slots."""
+    gw = topology_token(engine, "node_gateway")
+    pa = topology_token(engine, "node_proxy_a")
+    pb = topology_token(engine, "node_proxy_b")
+    v1 = topology_token(engine, "node_vault_1")
+    v2 = topology_token(engine, "node_vault_2")
+    ice = topology_token(engine, "node_ice_perimeter")
+    core = topology_token(engine, "node_central_core")
+    sides = [topology_token(engine, f"node_side_{i:02d}") for i in (1, 2, 3) if f"node_side_{i:02d}" in engine.nodes]
+    pad = " ".join(sides) if sides else "-- vacant --"
+    return [
+        "Topology Map (fixed slots, web parity):",
+        f"   {v1}      {v2}",
+        f"     {pa}  {ice}  {core}",
+        f"  {gw}--+--+--+--<",
+        f"     {pb}  SIDE:{pad}",
+    ]
 
 
 def print_hud(engine: GameEngine) -> None:
@@ -116,6 +160,8 @@ def print_hud(engine: GameEngine) -> None:
     story = engine.story_summary()
     active_quests = sum(1 for q in engine.state.quests if q.accepted and not q.completed)
     print(f"[*] Story:      {story['act_title']} // {story['chapter_title']} | Combo: x{engine.state.combo_streak} | Quests: {active_quests} active")
+    combo_fc = engine.combo_rate_preview()
+    print(f"[*] Combo Rate: next breach +{int(combo_fc['next_rate'] * 100)}% | unbanked at risk: {combo_fc['unbanked_at_risk']} CR")
     world = engine.state.world
     world_info = engine.world_summary()
     hunter_tag = ""
@@ -139,7 +185,11 @@ def print_hud(engine: GameEngine) -> None:
         adj = engine.nodes.get(cid)
         if adj:
             icon = "[BREACHED]" if adj.status == NodeStatus.BREACHED else ("[DISCOVERED]" if adj.status == NodeStatus.DISCOVERED else "[LOCKED]")
-            print(f"   * {adj.ip_address:<15} | {adj.hostname:<24} | {icon} (Sec: {adj.security_level})")
+            sprite = node_visual(adj.node_type, adj.status)
+            print(f"   * {sprite.get('glyph', '*')} {adj.ip_address:<15} | {adj.hostname:<24} | {sprite.get('label', adj.node_type):<9} | {icon} (Sec: {adj.security_level})")
+    for line in render_topology_map(engine):
+        print(line)
+    print("Legend: ◇ GATEWAY | ⬡ FIREWALL | ▣ VAULT | ▲ BLACK ICE | ⬢ SUPERCORE | ● BREACHED ◌ EXPOSED · SEALED | @ YOU")
     print("+==========================================================================+")
 
 
@@ -815,6 +865,24 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             return True
         ok, summary, _ = engine.probe_host(parts[1])
         print(summary)
+        if ok:
+            fp = engine.host_fingerprint(parts[1])
+            if fp.get("ok"):
+                print(f"OS: {fp['os_name']} | Uptime: {fp['uptime_days']}d ({fp['uptime_hours']}h) | Patch: {fp['patch_level']}")
+                print(f"Staff on shift ({fp['current_shift']}): {fp['employees_on_shift']}/{fp['employees_total']}")
+        return True
+
+    if action in ("traceroute", "tracert", "route"):
+        if len(parts) < 2:
+            print("Usage: traceroute <ip | hostname | node_id> (e.g. `traceroute 172.16.80.1`)")
+            return True
+        route = engine.trace_route(parts[1])
+        if not route.get("ok"):
+            print(f"Traceroute failed: {route.get('reason', 'unreachable')}.")
+            return True
+        print(f"Route to {route['target']} ({route['hop_count']} hops, {route['total_latency_ms']}ms):")
+        for index, hop in enumerate(route["hops"], start=1):
+            print(f"  {index:>2}  {hop['ip_address']:<15} {hop['hostname']:<26} {hop['latency_ms']}ms")
         return True
 
     if action in ("hack", "breach"):
@@ -933,6 +1001,26 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             return True
         ok, msg = engine.quickhack(parts[1])
         print(msg)
+        return True
+
+    if action in ("forecast", "preview", "odds"):
+        act = parts[1] if len(parts) > 1 else ""
+        tgt = parts[2] if len(parts) > 2 else ""
+        if not act:
+            print("Usage: forecast <scan|probe|overdrive|spoof|lay_low|quickhack|jackout> [target]")
+            return True
+        fc = engine.action_forecast(act, tgt)
+        if not fc.get("ok"):
+            print(f"Forecast: {act} blocked — {fc.get('reason', 'unavailable')}.")
+            return True
+        bits = [f"CPU {fc.get('cpu_delta', 0):+d}"]
+        if fc.get("trace_gain"):
+            bits.append(f"trace +{fc['trace_gain']}%")
+        if fc.get("trace_reduction"):
+            bits.append(f"trace -{fc['trace_reduction']}%")
+        if fc.get("turns"):
+            bits.append(f"{fc['turns']} turn(s)")
+        print(f"Forecast {fc.get('action')}: {', '.join(bits)}. {fc.get('notes', '')}")
         return True
 
     if action in ("intel", "threat_intel"):

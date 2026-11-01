@@ -632,4 +632,13 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   5. Cover CLI and HTTP failure paths plus the existing success path.
 - **Consequences**: The destructive reset now fails closed, so a backup failure cannot become data loss. Successful resets behave exactly as before. Test suite: 449 tests, 100% green.
 
-
+### ADR-050: Visual Sprite System, Action Forecasts, and Lifelike Host Simulation
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: The matrix canvas rendered every node type as an identical circle with no burst feedback; action costs were hidden so players burned CPU blind; hosts had no OS/uptime identity, no route readout, and staff were always available regardless of shift.
+- **Decision**:
+  1. Add presentation-only sprite registries (NODE_VISUALS, ENTITY_VISUALS, SHOP_VISUALS, PUZZLE_VISUALS, WORLD_VISUALS) plus type-shaped canvas sprites, breach particles, hunter reticles, and motion-safe reduced-motion paths; no save-schema change.
+  2. Add read-only ction_forecast()/combo_rate_preview() on the engine, a GET /api/forecast endpoint, a orecast CLI command, and a GET /api/route endpoint backed by 	race_route(); all costs derive from the same mitigated_trace() formula as the real actions.
+  3. Give hosts deterministic fingerprints (os_name, uptime_hours, patch_level) and staff work_shift values with host_fingerprint() reporting on-shift counts; add 	raceroute CLI and a ROUTE row on the web target card.
+  4. Cover the new contracts with 	ests/test_visuals.py, 	ests/test_forecast.py, 	ests/test_sim_life.py, and /api/forecast + /api/route server tests.
+- **Consequences**: Tactics become informed (exact mitigated costs, routes, host identity) while all tuned numbers stay identical; old saves load via dataclass defaults. Test suite: 473 tests, 100% green.

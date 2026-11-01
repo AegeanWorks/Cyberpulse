@@ -34,6 +34,108 @@ class OperatingStance:
     ANALYSIS = "analysis"
 
 
+# ---------------------------------------------------------------------------
+# Visual sprite metadata (presentation-only, never persisted in saves).
+# Zero-dependency: glyph + CSS/canvas shape + palette key. Keeps the Python
+# terminal map, the web canvas, and the legend in sync from one source.
+# ---------------------------------------------------------------------------
+NODE_VISUALS: Dict[str, Dict[str, str]] = {
+    NodeType.GATEWAY: {
+        "glyph": "◇", "shape": "diamond", "label": "GATEWAY",
+        "hue": "cyan", "css_class": "sprite-gateway",
+        "blurb": "Entry router",
+    },
+    NodeType.FIREWALL: {
+        "glyph": "⬡", "shape": "hexagon", "label": "FIREWALL",
+        "hue": "amber", "css_class": "sprite-firewall",
+        "blurb": "Filtered chokepoint",
+    },
+    NodeType.DATA_VAULT: {
+        "glyph": "▣", "shape": "vault", "label": "VAULT",
+        "hue": "gold", "css_class": "sprite-vault",
+        "blurb": "Loot store",
+    },
+    NodeType.ICE_DEFENSE: {
+        "glyph": "▲", "shape": "triangle", "label": "BLACK ICE",
+        "hue": "red", "css_class": "sprite-ice",
+        "blurb": "Active countermeasure",
+    },
+    NodeType.CENTRAL_CORE: {
+        "glyph": "⬢", "shape": "core", "label": "SUPERCORE",
+        "hue": "magenta", "css_class": "sprite-core",
+        "blurb": "Final objective",
+    },
+}
+
+STATUS_VISUALS: Dict[str, Dict[str, str]] = {
+    NodeStatus.LOCKED: {"glyph": "·", "css_class": "status-locked", "label": "SEALED"},
+    NodeStatus.DISCOVERED: {"glyph": "◌", "css_class": "status-discovered", "label": "EXPOSED"},
+    NodeStatus.BREACHED: {"glyph": "●", "css_class": "status-breached", "label": "BREACHED"},
+}
+
+STANCE_VISUALS: Dict[str, Dict[str, str]] = {
+    OperatingStance.BALANCED: {"glyph": "◎", "label": "BALANCED"},
+    OperatingStance.STEALTH: {"glyph": "◍", "label": "STEALTH"},
+    OperatingStance.OVERCLOCK: {"glyph": "⚡", "label": "OVERCLOCK"},
+    OperatingStance.ANALYSIS: {"glyph": "⌖", "label": "ANALYSIS"},
+}
+
+
+def node_visual(node_type: str, status: str = "") -> Dict[str, str]:
+    """Return presentation metadata for a node type + status pair."""
+    base = dict(NODE_VISUALS.get(node_type, NODE_VISUALS[NodeType.GATEWAY]))
+    overlay = STATUS_VISUALS.get(status, {})
+    if overlay:
+        base = {**base, "status_glyph": overlay["glyph"],
+                "status_label": overlay["label"],
+                "status_class": overlay["css_class"]}
+    return base
+
+
+ENTITY_VISUALS: Dict[str, Dict[str, str]] = {
+    "mira": {"glyph": "◆", "css_class": "avatar-fixer", "label": "FIXER"},
+    "kilo": {"glyph": "⬢", "css_class": "avatar-techie", "label": "TECHIE"},
+    "archivist": {"glyph": "▤", "css_class": "avatar-broker", "label": "BROKER"},
+    "zero": {"glyph": "⬣", "css_class": "avatar-zero", "label": "ZERO"},
+    "Vex": {"glyph": "✕", "css_class": "avatar-rival-vex", "label": "RIVAL"},
+    "Marrow": {"glyph": "◍", "css_class": "avatar-rival-marrow", "label": "RIVAL"},
+    "Static": {"glyph": "⚡", "css_class": "avatar-rival-static", "label": "RIVAL"},
+    "hunter": {"glyph": "◉", "css_class": "avatar-hunter", "label": "HUNTER"},
+    "hunter_confused": {"glyph": "◎", "css_class": "avatar-hunter-confused", "label": "HUNTER"},
+    "hunter_dead": {"glyph": "○", "css_class": "avatar-hunter-dead", "label": "HUNTER"},
+}
+
+SHOP_VISUALS: Dict[str, Dict[str, str]] = {
+    "overclock_cpu": {"glyph": "⚡", "css_class": "item-hardware", "label": "CPU"},
+    "expand_ram": {"glyph": "▤", "css_class": "item-hardware", "label": "RAM"},
+    "ice_dampener": {"glyph": "❄", "css_class": "item-hardware", "label": "ICE"},
+    "logic_bomb": {"glyph": "✸", "css_class": "item-exploit", "label": "BOMB"},
+    "ghost_protocol": {"glyph": "👻", "css_class": "item-exploit", "label": "GHOST"},
+    "dead_mans_switch": {"glyph": "⛨", "css_class": "item-consumable", "label": "SAFE"},
+}
+
+PUZZLE_VISUALS: Dict[str, Dict[str, str]] = {
+    "frequency": {"glyph": "∿", "css_class": "puzzle-freq", "label": "RESONANCE"},
+    "buffer": {"glyph": "▦", "css_class": "puzzle-buffer", "label": "OVERFLOW"},
+    "hash": {"glyph": "⌘", "css_class": "puzzle-hash", "label": "CIPHER"},
+}
+
+WORLD_VISUALS: Dict[str, Dict[str, str]] = {
+    "GREEN": {"glyph": "●", "css_class": "posture-green", "label": "GREEN"},
+    "AMBER": {"glyph": "●", "css_class": "posture-amber", "label": "AMBER"},
+    "RED": {"glyph": "●", "css_class": "posture-red", "label": "RED"},
+    "BLACK": {"glyph": "●", "css_class": "posture-black", "label": "BLACK"},
+}
+
+
+def entity_visual(key: str) -> Dict[str, str]:
+    """Return presentation metadata for contacts, rivals, hunters, shop, puzzles."""
+    for table in (ENTITY_VISUALS, SHOP_VISUALS, PUZZLE_VISUALS, WORLD_VISUALS):
+        if key in table:
+            return dict(table[key])
+    return {"glyph": "·", "css_class": "avatar-unknown", "label": str(key).upper()[:12]}
+
+
 @dataclass
 class PortService:
     """An exposed TCP/UDP network service on a target host."""
@@ -347,6 +449,7 @@ class EmployeeProfile:
     awareness_level: str = SecurityAwarenessLevel.STANDARD
     compromised: bool = False
     leaked_credential: Optional[str] = None
+    work_shift: str = "day"  # "day" (06-18), "night" (18-06), or "swing"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -381,6 +484,9 @@ class Node:
     reward_claimed: bool = False  # fresh data already looted, so re-breaches pay nothing
     failed_attempts: int = 0      # burned intrusion scripts on this host
     lockdown_until_turn: int = -1  # host ICE refuses new puzzle/service intrusions until this turn
+    os_name: str = "Unknown OS"   # host fingerprint: operating system
+    uptime_hours: int = 0         # host fingerprint: time since last reboot
+    patch_level: str = "patch-unknown"  # host fingerprint: last patch train
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)

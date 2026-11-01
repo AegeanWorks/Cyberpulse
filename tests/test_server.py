@@ -566,6 +566,21 @@ class TestCyberdeckServer(unittest.TestCase):
         self.assertEqual(res["state"]["deck"]["cryptocreds"], 20)
         self.assertEqual(res["state"]["career"]["banked_creds"], 20)
 
+    def test_forecast_endpoint_matches_engine_costs(self):
+        status, data = self._get("/api/forecast?action=scan")
+        self.assertEqual(status, 200)
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["cpu_delta"], 1)
+        self.assertEqual(data["turns"], 1)
+
+    def test_route_endpoint_reports_hops(self):
+        status, data = self._get("/api/route?target=node_central_core")
+        self.assertEqual(status, 200)
+        self.assertTrue(data["ok"])
+        self.assertGreaterEqual(data["hop_count"], 2)
+        self.assertEqual(data["hops"][-1]["node_id"], "node_central_core")
+        self.assertGreater(data["total_latency_ms"], 0)
+
     def test_web_settlement_does_not_delete_unowned_save(self):
         data_dir = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, data_dir, ignore_errors=True)
