@@ -878,7 +878,8 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             return True
         route = engine.trace_route(parts[1])
         if not route.get("ok"):
-            print(f"Traceroute failed: {route.get('reason', 'unreachable')}.")
+            reason = str(route.get("reason", "unreachable")).rstrip(".")
+            print(f"Traceroute failed: {reason}.")
             return True
         print(f"Route to {route['target']} ({route['hop_count']} hops, {route['total_latency_ms']}ms):")
         for index, hop in enumerate(route["hops"], start=1):
@@ -1011,7 +1012,8 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             return True
         fc = engine.action_forecast(act, tgt)
         if not fc.get("ok"):
-            print(f"Forecast: {act} blocked — {fc.get('reason', 'unavailable')}.")
+            reason = str(fc.get("reason", "unavailable")).rstrip(".")
+            print(f"Forecast: {act} blocked — {reason}.")
             return True
         bits = [f"CPU {fc.get('cpu_delta', 0):+d}"]
         if fc.get("trace_gain"):

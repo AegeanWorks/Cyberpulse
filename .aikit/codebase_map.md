@@ -9,8 +9,8 @@
 - **Total Python Modules**: `44`
 - **Total Classes**: `77`
 - **Total Top-Level Functions**: `102`
-- **Total Class Methods**: `726`
-- **Total Source Lines**: `16630`
+- **Total Class Methods**: `727`
+- **Total Source Lines**: `16650`
 
 ---
 
@@ -42,7 +42,7 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1504` lines (`69595` bytes)
+**Size**: `1506` lines (`69685` bytes)
 
 **Functions:**
 - `def setup_terminal_encoding()` - *Ensure stdout and stderr handle utf-8 safely across all Windows code pages.*
@@ -878,7 +878,7 @@
 ### [`tests/test_forecast.py`](tests/test_forecast.py)
 > *Failing-first tests for read-only action forecasts (no balance numbers change).*
 
-**Size**: `89` lines (`3571` bytes)
+**Size**: `107` lines (`4253` bytes)
 
 **Classes:**
 - `class TestActionForecast`
@@ -889,6 +889,7 @@
   - Method `.test_unknown_action_is_rejected()`
   - Method `.test_combo_rate_preview_caps_at_fifty_percent()`
   - Method `.test_jackout_forecast_matches_extraction_risk()`
+  - Method `.test_cli_blocked_forecast_has_no_double_period()`
   - Method `.test_cli_forecast_command_reports_costs()`
 
 ---

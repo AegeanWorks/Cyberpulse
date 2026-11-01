@@ -67,6 +67,24 @@ class TestActionForecast(unittest.TestCase):
         self.assertEqual(fc["projected_trace"], risk["projected_trace"])
         self.assertEqual(fc["lethal"], risk["lethal"])
 
+    def test_cli_blocked_forecast_has_no_double_period(self):
+        import io
+        import shutil
+        import tempfile
+        from contextlib import redirect_stdout
+        from pathlib import Path
+
+        from cyberpulse.cli import main
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = main(["--data-dir", str(tmp), "--seed", "1337", "--exec", "forecast bogus; traceroute node_missing"])
+        self.assertEqual(code, 0)
+        self.assertNotIn("..", buf.getvalue())
+        self.assertIn("Forecast: bogus blocked", buf.getvalue())
+
     def test_cli_forecast_command_reports_costs(self):
         import io
         import shutil

@@ -1,54 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "audit-push5",
+    "task_id": "audit-push7",
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793567056.4192097,
+    "updated_at": 1793567243.398043,
     "owner": "kilo:1",
     "started_by": "kilo:1",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "gfx-ui-pass3",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] Pass3 hardening: reset breach cache, viewport cache, static osc frame, visual unit tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793565469.0016947,
-      "timestamp_str": "2026-11-01 23:37:49",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "pass2 left stale breach cache across resets and per-particle viewport lookups",
-        "benefits": "correct replay bursts, faster canvas, locked sprite contracts",
-        "risks": "contract: save schema stable; dependency: zero-dep only; concurrency: rAF single thread; state: no new persisted fields",
-        "mitigation": "surgical JS edits, additive tests only, full suite + check"
-      }
-    },
-    {
-      "task_id": "gfx-ui-pass3",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Pass3 done, 455 tests OK, check 5/5 passed, checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793565560.7937953,
-      "timestamp_str": "2026-11-01 23:39:20",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "gfx-ui-pass3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'gfx-ui-pass3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793565563.646107,
-      "timestamp_str": "2026-11-01 23:39:23",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "gfx-ui-pass4",
       "phase": "phase 2",
@@ -265,6 +227,44 @@
       "status": "in_progress",
       "timestamp": 1793567056.4192097,
       "timestamp_str": "2026-11-02 00:04:16",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "audit-push5",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'audit-push5' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793567068.746316,
+      "timestamp_str": "2026-11-02 00:04:28",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "audit-push7",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Audit last-7-push range incl. backup-guard and reroll commits",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793567110.405322,
+      "timestamp_str": "2026-11-02 00:05:10",
+      "agent": "kilo:1",
+      "impact_assessment": {
+        "why": "older code commits in range not yet independently reviewed",
+        "benefits": "catch latent faults in reset/contract paths before next increment",
+        "risks": "contract: read-only audit unless a fault is found; dependency: zero-dep; concurrency: none; state: none",
+        "mitigation": "diff review, targeted tests, full suite; fix only proven faults"
+      }
+    },
+    {
+      "task_id": "audit-push7",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Punctuation fix, 474 tests OK, 5/5 gates, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793567243.398043,
+      "timestamp_str": "2026-11-02 00:07:23",
       "agent": "kilo:1"
     }
   ]
