@@ -785,7 +785,8 @@ function renderHUD(data) {
     const mit = `Mitigation: dampener L${damp}, ${stance}, ${proxies}/3 proxies.`;
     const setTitle = (id, text) => { const el = document.getElementById(id); if (el) el.title = `${text} ${mit}`; };
     setTitle("btn-scan", "SCAN: +1 CPU, +5% raw trace, 1 turn. Reveals adjacent nodes.");
-    setTitle("btn-overdrive", "OVERDRIVE: -2 CPU, +8% raw trace, +1 combo, +10 CR unbanked. Blocked at 92%+ trace.");
+    const odCost = (data.arcs && data.arcs.live && data.arcs.live.kilo_overdrive) ? 1 : 2;
+    setTitle("btn-overdrive", `OVERDRIVE: -${odCost} CPU, +8% raw trace, +1 combo, +10 CR unbanked. Blocked at 92%+ trace.${odCost === 1 ? " Kilo arc discount." : ""}`);
     setTitle("btn-spoof", "SPOOF: -3 CPU, trace -25% (floor 0%), scrambles hunters 2 turns.");
     setTitle("btn-lay-low", "LAY LOW: +1 CPU/turn for 1-3 turns; the grid keeps moving.");
     const comboEl2 = document.getElementById("val-combo");
@@ -926,6 +927,9 @@ function buildRunStats(summary, gState) {
   if (typeof breached === "number") {
     stats.push({ label: "HOSTS BREACHED", value: `${breached}` });
   }
+  if (Array.isArray(summary.districts_compromised) && summary.districts_compromised.length) {
+    stats.push({ label: "GRID HELD", value: `${summary.districts_compromised.length}/5 — ${summary.districts_compromised.join(", ")}` });
+  }
   if (turns) {
     stats.push({ label: "TURNS", value: `${turns}` });
   }
@@ -968,8 +972,7 @@ function applyStateSnapshot(res) {
 }
 
 function sideNodeLabel(name) {
-  const upper = String(name || "SIDE HOST").toUpperCase();
-  return upper.length > 16 ? `${upper.slice(0, 15)}...` : upper;
+  return String(name || "SIDE HOST").toUpperCase();
 }
 
 function syncSideNodePositions(nodes) {
@@ -1633,6 +1636,13 @@ function updateTargetCard(nodeId) {
   document.getElementById("target-sec").textContent = `LEVEL ${node.security_level}`;
   document.getElementById("target-ram").textContent = `${node.security_level * 16}MB (Deck: ${deck.ram_mb}MB)`;
   document.getElementById("target-trace").textContent = `+${node.trace_rate}%`;
+  const distEl = document.getElementById("target-district");
+  if (distEl) {
+    const dName = node.district || "--";
+    const dPatrol = node.district_patrol || "standard";
+    distEl.textContent = `${dName} // ${dPatrol.toUpperCase()}`;
+    distEl.title = `${dName}: NetWatch patrol ${dPatrol}`;
+  }
   const osEl = document.getElementById("target-os");
   if (osEl) {
     osEl.textContent = node.os_name || "Unknown OS";
@@ -1726,7 +1736,9 @@ function updateTargetCard(nodeId) {
   btnHack.disabled = isBreached || !isAdjacent || lockedDown;
   btnHack.title = lockedDown
     ? `Host ICE is rotating until turn ${node.lockdown_until_turn}. Lay low or target another host.`
-    : "Initiate intrusion.";
+    : (node.district_patrol === "heavy" && !isBreached
+      ? `Initiate intrusion. WARNING: ${node.district || "district"} patrols are heavy (+1% district heat trace).`
+      : "Initiate intrusion.");
   btnMove.disabled = !isBreached || curr.node_id === nodeId;
   btnKeylogger.disabled = !isBreached;
   btnWipe.disabled = !isBreached;
@@ -2094,10 +2106,14 @@ function drawMatrix(ctx, time) {
   const sx = (x) => view.offX + x * view.scale;
   const sy = (y) => view.offY + y * view.scale;
   const compact = view.scale < 0.8;
+  // Labels are painted in CSS px while positions shrink with view.scale, so
+  // scale fonts down on narrow panels to keep neighbours from colliding.
+  const labelScale = Math.max(0.7, Math.min(1, view.scale));
   const nodeR = compact ? 16 : 20;
   const coreR = compact ? 7 : 9;
-  const labelSize = compact ? 10 : 11;
-  const ipSize = compact ? 8.5 : 9;
+  const labelSize = (compact ? 10 : 11) * labelScale;
+  const ipSize = (compact ? 8.5 : 9) * labelScale;
+  const tagSize = 8 * labelScale;
 
   // 1. Draw Network Connection Edges
   for (const [nid, node] of Object.entries(nodes)) {
@@ -2204,16 +2220,35 @@ function drawMatrix(ctx, time) {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Node Center Icon / Circle
+    // Node Center Icon / Circle (current node cools cyan, heats red with trace)
+    const traceHeat = isCurrent
+      ? Math.max(0, Math.min(1, (((state.data.state && state.data.state.trace_percent) || 0) - 25) / 75))
+      : 0;
+    const currentCore = traceHeat > 0
+      ? `hsl(${Math.round(185 - 150 * traceHeat)}, 100%, ${Math.round(60 - 4 * traceHeat)}%)`
+      : "hsl(185, 100%, 60%)";
     ctx.beginPath();
     ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
     ctx.fillStyle = isCurrent
-      ? "hsl(185, 100%, 60%)"
+      ? currentCore
       : (isBreached ? sprite.core : (isDiscovered ? "hsl(45, 100%, 58%)" : "#3c4450"));
-    ctx.shadowBlur = (isBreached || isCurrent) ? 10 : 0;
-    ctx.shadowColor = (isBreached || isCurrent) ? sprite.core : "transparent";
+    ctx.shadowBlur = (isBreached || isCurrent) ? 10 + (Number(node.security_level) || 1) * 1.5 : (Number(node.security_level) || 0);
+    ctx.shadowColor = (isBreached || isCurrent) ? sprite.core : "rgba(140,150,165,0.35)";
     ctx.fill();
     ctx.shadowBlur = 0;
+
+    // Heavy-patrol district ring: hosts on NetWatch's active sweep grid
+    // wear a dashed red cordon so hot streets read at a glance.
+    if (node.district_patrol === "heavy" && !isBreached) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,70,70,0.55)";
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreR + 6, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Target Selection Halo (rotating corner brackets)
     if (isSelected) {
@@ -2232,13 +2267,17 @@ function drawMatrix(ctx, time) {
       ctx.restore();
     }
 
-    // Node Label & IP
+    // Node Label & IP (side hosts hide their name on narrow panels unless
+    // selected; IP pill + type tag still identify them).
+    const isSideHost = !!SIDE_NODE_SLOTS[nid];
     ctx.textAlign = "center";
     ctx.font = `600 ${labelSize}px 'Cascadia Mono', 'Consolas', monospace`;
     ctx.fillStyle = isCurrent
       ? "hsl(185, 100%, 88%)"
       : (isBreached ? "hsl(140, 60%, 74%)" : (isDiscovered ? "hsl(45, 55%, 78%)" : "rgba(170, 180, 195, 0.7)"));
-    ctx.fillText(pos.label, cx, cy + nodeR + 14);
+    if (!compact || !isSideHost || isSelected) {
+      ctx.fillText(pos.label, cx, cy + nodeR + 14);
+    }
 
     ctx.font = `${ipSize}px 'Cascadia Mono', 'Consolas', monospace`;
     {
@@ -2271,7 +2310,7 @@ function drawMatrix(ctx, time) {
     ctx.fillText(node.ip_address || "", cx, cy + nodeR + 26);
 
     if (isCurrent) {
-      ctx.font = `700 8px 'Cascadia Mono', 'Consolas', monospace`;
+      ctx.font = `700 ${tagSize}px 'Cascadia Mono', 'Consolas', monospace`;
       ctx.fillStyle = "rgba(0, 230, 255, 0.85)";
       ctx.fillText("ACTIVE TERMINAL", cx, cy - nodeR - 10);
     }
@@ -2307,7 +2346,7 @@ function drawMatrix(ctx, time) {
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      ctx.font = `700 8px 'Cascadia Mono', 'Consolas', monospace`;
+      ctx.font = `700 ${tagSize}px 'Cascadia Mono', 'Consolas', monospace`;
       ctx.fillStyle = "rgba(255, 70, 90, 0.95)";
       ctx.fillText(
         `HUNTER: ${huntersAtNode[0].name.toUpperCase()}`,
@@ -2316,7 +2355,7 @@ function drawMatrix(ctx, time) {
       );
     }
     // Type tag under IP for fast scanning
-    ctx.font = `700 8px 'Cascadia Mono', 'Consolas', monospace`;
+    ctx.font = `700 ${tagSize}px 'Cascadia Mono', 'Consolas', monospace`;
     ctx.fillStyle = isBreached ? "rgba(140,255,190,0.75)" : "rgba(140,150,165,0.5)";
     const spriteTag = (NODE_SPRITES[node.node_type] || NODE_SPRITES.GATEWAY).shape.toUpperCase();
     ctx.fillText(spriteTag, cx, cy + nodeR + 37);
@@ -2837,7 +2876,7 @@ function openQuestsModal() {
         <span class="quest-status">${(active.risk_tier || "standard").toUpperCase()}</span>
       </div>
       <div class="quest-desc">${active.description || ""}</div>
-      <div class="quest-meta">TARGET: ${active.target_ip || active.target_node_type} | TRACE LIMIT: ${active.max_trace_limit}% | ${remaining === null ? "NO DEADLINE" : `${Math.max(0, remaining)} TURNS LEFT`} | PAY: ${active.reward_creds} CR</div>
+      <div class="quest-meta">TARGET: ${active.target_ip || active.target_node_type}${active.district ? ` [${active.district}]` : ""} | TRACE LIMIT: ${active.max_trace_limit}% | ${remaining === null ? "NO DEADLINE" : `${Math.max(0, remaining)} TURNS LEFT`} | PAY: ${active.reward_creds} CR</div>
       <button class="hack-btn small-btn decline-job-btn">DECLINE CONTRACT</button>
     `;
     card.querySelector(".decline-job-btn").addEventListener("click", handleDeclineContract);
@@ -2854,7 +2893,7 @@ function openQuestsModal() {
         <span class="quest-status">${(offer.risk_tier || "standard").toUpperCase()}</span>
       </div>
       <div class="quest-desc">${offer.description || ""}</div>
-      <div class="quest-meta">TARGET: ${offer.target_ip || offer.target_node_type} | WINDOW: ${offer.deadline_turns} TURNS | PAY: ${offer.reward_creds} CR (+${offer.bonus_creds} RUSH)${offerLeft === null ? "" : ` | OFFER ${Math.max(0, offerLeft)} TURNS`}</div>
+      <div class="quest-meta">TARGET: ${offer.target_ip || offer.target_node_type}${offer.district ? ` [${offer.district}]` : ""} | WINDOW: ${offer.deadline_turns} TURNS | PAY: ${offer.reward_creds} CR (+${offer.bonus_creds} RUSH)${offerLeft === null ? "" : ` | OFFER ${Math.max(0, offerLeft)} TURNS`}</div>
       ${active ? "" : `<button class="hack-btn small-btn accept-contract-btn" data-contract="${offer.contract_id}">ACCEPT CONTRACT</button><button class="hack-btn small-btn pass-offer-btn" data-contract="${offer.contract_id}">PASS (30 CR / 1 TURN)</button>`}
     `;
     const acceptBtn = card.querySelector(".accept-contract-btn");
@@ -2974,6 +3013,7 @@ function openContactsModal() {
       <div class="contact-tagline">${contact.tagline}</div>
       <div class="contact-dialogue">"${contact.dialogue}"</div>
       ${contact.trust_dialogue ? `<div class="contact-dialogue">"${contact.trust_dialogue}"</div>` : ""}
+      ${contact.arc_title ? `<div class="contact-arc">ARC: ${contact.arc_title} — ${contact.arc_label} (${contact.arc_stage}/3)</div>` : ""}
       <div class="contact-favor">${contact.favor_description}</div>
       <div class="contact-actions">
         <button class="action-btn small-btn contact-action" data-mode="talk">TALK</button>
@@ -3665,3 +3705,154 @@ async function handleEvadeAv() {
   }
 }
 
+/* === Cyberpulse 0.5.0: SIM + ARCS + DeckOS panels, alert theming, shortcuts === */
+(function cyberpulseSimArcs() {
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function snapshot() { try { return (typeof state !== "undefined" && state.data) || null; } catch (_) { return null; } }
+
+  function renderSimPanels(data) {
+    data = data || snapshot();
+    if (!data) return;
+    try {
+      var tier = (data.world && data.world.alert_tier) || "";
+      if (tier) document.body.dataset.alertTier = tier;
+    } catch (_) {}
+    try {
+      var traceLevel = (data.state && data.state.trace_percent) || 0;
+      document.body.classList.toggle("trace-critical", traceLevel >= 80);
+    } catch (_) {}
+    try {
+      var districts = data.districts || (data.world && data.world.districts) || [];
+      var chip = $("grid-districts");
+      if (chip && districts.length) {
+        var hot = districts.filter(function (d) { return d.patrol === "heavy"; }).length;
+        var avg = Math.round(districts.reduce(function (a, d) { return a + (d.load || 0); }, 0) / districts.length);
+        chip.textContent = "DISTRICTS AVG " + avg + "%" + (hot ? " // " + hot + " HOT" : "");
+      }
+      var grid = $("districts-grid");
+      if (grid && districts.length) {
+        var nodeStatus = {};
+        try {
+          var allNodes = data.nodes || {};
+          for (var nk in allNodes) { if (allNodes[nk]) nodeStatus[nk] = allNodes[nk].status; }
+        } catch (_) {}
+        grid.innerHTML = districts.map(function (d) {
+          return '<div class="district-card" tabindex="0" aria-label="' + esc(d.name) + " load " + d.load + " percent, " + esc(d.patrol) + ' patrol">' +
+            '<div class="d-name">' + esc(d.name) + "</div>" +
+            '<div class="d-meta">' + esc(d.flavor || "") + " · patrol " + esc(d.patrol || "") + " · " + esc(d.market_mood || "") + "</div>" +
+            (d.hosts && d.hosts.length ? '<div class="d-hosts">' + d.hosts.length + " HOSTS: " + d.hosts.slice(0, 6).map(function (h) { return '<button class="d-host-chip' + (nodeStatus[h] === "BREACHED" ? " breached" : "") + '" data-node="' + esc(h) + '" title="Select ' + esc(h) + ' on the matrix">' + esc(h.replace(/^node_/, "")) + "</button>"; }).join("") + (d.hosts.length > 6 ? '<span class="d-more">+' + (d.hosts.length - 6) + " more</span>" : "") + "</div>" : "") +
+            '<div class="load-track" aria-hidden="true"><div class="load-fill" style="width:' + Math.max(0, Math.min(100, d.load || 0)) + '%;"></div></div></div>';
+        }).join("");
+        Array.prototype.forEach.call(grid.querySelectorAll("[data-node]"), function (chip) {
+          chip.onclick = function (ev) {
+            ev.stopPropagation();
+            try { if (typeof sfx !== "undefined") sfx.click(); } catch (_) {}
+            var nid = chip.getAttribute("data-node");
+            var m = $("modal-sim");
+            if (m) m.classList.add("hidden");
+            try {
+              state.selectedNodeId = nid;
+              if (typeof updateTargetCard === "function") updateTargetCard(nid);
+            } catch (_) {}
+          };
+        });
+      }
+    } catch (_) {}
+    try {
+      var deckos = data.deckos || null;
+      var meta = $("deckos-meta"), procs = $("deckos-grid");
+      if (deckos && meta && procs) {
+        meta.textContent = deckos.hostname + " (" + deckos.ip + ") · uptime " + deckos.uptime + " · CPU " + deckos.cpu + " · trace " + deckos.trace + "% · procs " + deckos.processes;
+        if (Array.isArray(deckos.processes_list || deckos.processes) && false) { void 0; }
+        if (Array.isArray(deckos.processes)) {
+          procs.innerHTML = deckos.processes.map(function (p) {
+            return '<div class="deckos-proc"><span>[' + p.pid + "] " + esc(p.name) + " <em>" + esc(p.owner) + "</em></span>" +
+              (p.killable ? '<button data-kill="' + p.pid + '" aria-label="Kill process ' + p.pid + '">KILL</button>' : "<span>" + esc(p.desc || "") + "</span>") + "</div>";
+          }).join("");
+        } else {
+          procs.innerHTML = '<div class="deckos-proc"><span>No user processes. Daemons and hunters appear here.</span></div>';
+        }
+        Array.prototype.forEach.call(procs.querySelectorAll("[data-kill]"), function (btn) {
+          btn.onclick = function (ev) {
+            ev.stopPropagation();
+            try { if (typeof sfx !== "undefined") sfx.click(); } catch (_) {}
+            apiPost("/api/action", { action: "kill_process", pid: Number(btn.getAttribute("data-kill")) }).then(function (res) {
+              if (res && res.state) { try { renderHUD(res.state); } catch (_) {} renderSimPanels(res.state); }
+              if (res && typeof addTerminalLog === "function") addTerminalLog((res && res.message) || "kill dispatched.", (res && res.ok) ? "success" : "warn");
+            });
+          };
+        });
+      }
+      try {
+        var hist = (data.state && data.state.cmd_history) || [];
+        var histEl = $("deckos-history");
+        if (histEl) {
+          histEl.innerHTML = hist.length
+            ? hist.slice(-8).map(function (entry, idx) {
+              return '<div class="deckos-hist-line"><span>' + (hist.length > 8 ? hist.length - 8 + idx + 1 : idx + 1) + "</span> " + esc(entry) + "</div>";
+            }).join("")
+            : '<div class="deckos-hist-line">No commands logged this run yet. Terminal and cyberdeck share this log.</div>';
+        }
+      } catch (_) {}
+    } catch (_) {}
+    try {
+      var arcs = (data.arcs && data.arcs.arcs) || [];
+      var live = (data.arcs && data.arcs.live) || {};
+      var liveByContact = { "Mira Voss": "mira_decay", "Kilo": "kilo_yield", "The Archivist": "archivist_wipe", "Agent Zero": "zero_counter" };
+      varagrid = $("arcs-grid");
+      if (agrid && arcs.length) {
+        agrid.innerHTML = arcs.map(function (a) {
+          var tag = live[liveByContact[a.name]] ? ' <span class="a-live">BONUS LIVE</span>' : "";
+          return '<div class="arc-card" tabindex="0" aria-label="' + esc(a.name) + " arc stage " + a.stage + ' of 3">' +
+            '<div class="a-name">' + esc(a.name) + " // " + esc(a.arc) + tag + "</div>" +
+            '<div class="a-stage">' + esc(a.stage_label) + " (" + a.stage + "/3" + (a.next_trust ? " · next @ trust " + a.next_trust : " · MAX") + ")</div>" +
+            '<div class="a-text">' + esc(a.stage_text) + "</div>" +
+            (a.bonus ? '<div class="a-bonus">BONUS: ' + esc(a.bonus) + "</div>" : "") + "</div>";
+        }).join("");
+      }
+    } catch (_) {}
+  }
+
+  function bindModal(openId, modalId, closeId) {
+    var open = $(openId), modal = $(modalId), close = $(closeId);
+    if (open && modal) open.addEventListener("click", function () {
+      try { if (typeof sfx !== "undefined") sfx.click(); } catch (_) {}
+      renderSimPanels(); modal.classList.remove("hidden");
+    });
+    if (close && modal) close.addEventListener("click", function () { modal.classList.add("hidden"); });
+    if (modal) modal.addEventListener("click", function (ev) { if (ev.target === modal) modal.classList.add("hidden"); });
+  }
+
+  function bindShortcuts() {
+    document.addEventListener("keydown", function (ev) {
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      var tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      var k = (ev.key || "").toLowerCase();
+      function click(id) { var el = $(id); if (el && !el.disabled) { el.click(); ev.preventDefault(); } }
+      if (k === "g") { renderSimPanels(); var m = $("modal-sim"); if (m) { m.classList.remove("hidden"); ev.preventDefault(); } }
+      else if (k === "t") { renderSimPanels(); var m2 = $("modal-arcs"); if (m2) { m2.classList.remove("hidden"); ev.preventDefault(); } }
+      else if (k === "h") {
+        document.body.classList.toggle("hc");
+        try { localStorage.setItem("cyberpulse-hc", document.body.classList.contains("hc") ? "1" : "0"); } catch (_) {}
+      }
+      else if (k === "s") click("btn-scan");
+      else if (k === "o") click("btn-overdrive");
+      else if (k === "v") click("btn-spoof");
+      else if (k === "l") click("btn-lay-low");
+      else if (k === "j") click("btn-jackout");
+      else if (k === "q") click("btn-quests-open");
+      else if (k === "n") click("btn-contacts-open");
+      else if (k === "d") click("btn-career-open");
+    });
+    try { if (localStorage.getItem("cyberpulse-hc") === "1") document.body.classList.add("hc"); } catch (_) {}
+  }
+
+  bindModal("btn-sim-open", "modal-sim", "btn-close-sim");
+  bindModal("btn-arcs-open", "modal-arcs", "btn-close-arcs");
+  bindShortcuts();
+  setInterval(function () { try { renderSimPanels(); } catch (_) {} }, 2000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) { try { renderSimPanels(); } catch (_) {} } });
+  window.cyberpulseRenderSimPanels = renderSimPanels;
+})();
