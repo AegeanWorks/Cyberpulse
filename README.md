@@ -54,7 +54,9 @@ cyberpulse/
 ├── cyberpulse/               <- core game engine and CLI
 │   ├── __init__.py
 │   ├── achievements.py       <- career milestone catalog & settlement unlocks
+│   ├── arcs.py               <- operative loyalty arcs & district street simulation
 │   ├── cli.py                <- interactive terminal interface & REPL
+│   ├── deckos.py             <- in-game DeckOS computer: processes, sysinfo, history
 │   ├── daily.py              <- date-derived daily keys & seeds
 │   ├── difficulty.py         <- difficulty normalization & modifiers
 │   ├── engine.py             <- deterministic game state coordinator

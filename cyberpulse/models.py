@@ -800,6 +800,7 @@ class GameState:
     probed_nodes: List[str] = field(default_factory=list)
     scanned: bool = False
     rival: Optional[RivalNetrunner] = None
+    cmd_history: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)

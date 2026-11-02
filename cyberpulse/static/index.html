@@ -85,6 +85,7 @@
       <span class="grid-chip rival-chip" id="grid-rival" style="display: none;">RIVAL</span>
       <span class="grid-chip alert-chip" id="grid-alert">GRID ALERT 10%</span>
       <span class="grid-chip market-chip" id="grid-market">MARKET x1.000</span>
+      <span class="grid-chip district-chip" id="grid-districts" title="Street-level district load simulation">DISTRICTS NOMINAL</span>
       <span class="grid-chip hunter-chip" id="grid-hunter" style="display: none;">RADAR CLEAR</span>
       <span class="grid-ticker" id="grid-ticker">GRIDWIRE // the wire is quiet; breach a host to make headlines.</span>
     </div>
@@ -115,6 +116,12 @@
           </button>
           <button class="rail-btn reset-action" id="btn-rival-open" title="Rival netrunner status" aria-label="Rival netrunner">
             <span class="rail-glyph">◈</span><span class="rail-label">RIVAL</span>
+          </button>
+          <button class="rail-btn info-action" id="btn-sim-open" title="District simulation [G]" aria-label="District simulation">
+            <span class="rail-glyph">▦</span><span class="rail-label">SIM</span>
+          </button>
+          <button class="rail-btn info-action" id="btn-arcs-open" title="Operative loyalty arcs [T]" aria-label="Operative arcs">
+            <span class="rail-glyph">⬢</span><span class="rail-label">ARCS</span>
           </button>
         </div>
         <button class="rail-btn reset-action" id="btn-reset-run" title="Start a new seeded run" aria-label="New run">
@@ -162,6 +169,8 @@
                 <span class="legend-item"><span class="legend-dot dot-ice"></span>ICE</span>
                 <span class="legend-item"><span class="legend-dot dot-vault"></span>VAULT</span>
                 <span class="legend-item"><span class="legend-dot dot-core"></span>CORE</span>
+                <span class="legend-item"><span class="legend-dot dot-heat"></span>HOT</span>
+                <span class="legend-item"><span class="legend-dot dot-cordon"></span>SWEEP</span>
               </div>
             </div>
           </div>
@@ -235,6 +244,7 @@
               <div class="meta-item"><span class="lbl">EDR</span><span class="val" id="target-antivirus">--</span></div>
               <div class="meta-item"><span class="lbl">BUFFER</span><span class="val" id="target-ram">--</span></div>
               <div class="meta-item"><span class="lbl">TRACE</span><span class="val" id="target-trace">--</span></div>
+              <div class="meta-item"><span class="lbl">DISTRICT</span><span class="val" id="target-district">--</span></div>
               <div class="meta-item"><span class="lbl">ROUTE</span><span class="val" id="target-route">--</span></div>
             </div>
 
@@ -614,6 +624,37 @@
         so a crash or closed browser never costs more than the last action.
       </p>
       <div class="saves-list" id="saves-list"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="modal-sim">
+    <div class="modal-box sim-modal-box">
+      <div class="modal-header">
+        <span class="modal-title">DISTRICT SIM // STREET LAYER</span>
+        <button class="modal-close" id="btn-close-sim">&times;</button>
+      </div>
+      <p class="saves-hint">Five districts tick with the grid clock: load drives patrol weight and market mood.</p>
+      <div class="districts-grid" id="districts-grid"></div>
+      <div class="modal-header" style="margin-top:12px;">
+        <span class="modal-title">DECKOS // LOCAL RIG</span>
+      </div>
+      <div class="deckos-meta" id="deckos-meta"></div>
+      <div class="deckos-grid" id="deckos-grid"></div>
+      <div class="modal-header" style="margin-top:12px;">
+        <span class="modal-title">SHELL HISTORY // RUN-SCOPED</span>
+      </div>
+      <div class="deckos-history" id="deckos-history"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="modal-arcs">
+    <div class="modal-box arcs-modal-box">
+      <div class="modal-header">
+        <span class="modal-title">OPERATIVE ARCS // LOYALTY</span>
+        <button class="modal-close" id="btn-close-arcs">&times;</button>
+      </div>
+      <p class="saves-hint">Trust unlocks three arc stages per operative. Work contracts, jobs, and favors.</p>
+      <div class="arcs-grid" id="arcs-grid"></div>
     </div>
   </div>
 

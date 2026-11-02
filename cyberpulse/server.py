@@ -18,6 +18,7 @@ if str(project_root) not in sys.path:
 
 from cyberpulse.achievements import achievement_status
 from cyberpulse.daily import daily_modifier, daily_run
+from cyberpulse.deckos import record_history as _record_history
 from cyberpulse.difficulty import normalize_difficulty
 from cyberpulse.engine import GameEngine
 from cyberpulse.factions import rank_for
@@ -94,17 +95,31 @@ class CyberdeckSession:
         curr = self.engine.get_current_node()
         career = self.save_mgr.load_career()
         world = self.engine.world_summary()
+        nodes = {nid: n.to_dict() for nid, n in self.engine.nodes.items()}
+        for nid, tag in self.engine.node_districts().items():
+            if nid in nodes:
+                nodes[nid].update(tag)
+        state_data = self.engine.state.to_dict()
+        for offer in state_data.get("contract_offers", []) or []:
+            tag = self.engine.offer_district(offer.get("target_ip", ""))
+            offer["district"] = tag["district"]
+            offer["district_patrol"] = tag["district_patrol"]
+        active = state_data.get("active_contract")
+        if isinstance(active, dict):
+            tag = self.engine.offer_district(active.get("target_ip", ""))
+            active["district"] = tag["district"]
+            active["district_patrol"] = tag["district_patrol"]
         return {
             "seed": self.engine.seed,
             "daily_key": getattr(self.engine, "daily_key", ""),
             "daily_modifier": self.engine.daily_modifier_summary(),
             "difficulty": self.engine.difficulty,
             "allegiance": self.engine.allegiance,
-            "state": self.engine.state.to_dict(),
+            "state": state_data,
             "deck": self.engine.deck.to_dict(),
             "extraction_risk": self.engine.extraction_risk(),
             "current_node": curr.to_dict(),
-            "nodes": {nid: n.to_dict() for nid, n in self.engine.nodes.items()},
+            "nodes": nodes,
             "career": career.to_dict(),
             "story": self.engine.story_summary(),
             "world": world,
@@ -113,6 +128,9 @@ class CyberdeckSession:
             "tutorial": self.engine.tutorial_progress(),
             "quests": self.engine.list_quests(),
             "contacts": self.engine.list_contacts(),
+            "deckos": self.engine.deckos_summary(),
+            "arcs": self.engine.arcs_summary(),
+            "districts": self.engine.district_summary()["districts"],
             "shop_items": self.shop.list_available(
                 self.engine.deck, price_multiplier=self.engine.shop_price_multiplier()
             ),
@@ -351,6 +369,18 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if path == "/api/deckos":
+            self.send_json_response(self.server_session.engine.deckos_summary())
+            return
+
+        if path == "/api/arcs":
+            self.send_json_response(self.server_session.engine.arcs_summary())
+            return
+
+        if path == "/api/districts":
+            self.send_json_response(self.server_session.engine.district_summary())
+            return
+
         if path == "/api/puzzle":
             # Extract query params
             node_id = None
@@ -492,6 +522,21 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
                     HTTPStatus.BAD_REQUEST,
                 )
                 return
+
+            if action in ("save", "load", "reset", "reset_career", "rename_save", "rename",
+                            "delete_save", "delete", "rename_alias", "alias"):
+                pass  # meta actions stay out of the DeckOS shell history
+            elif action:
+                # Mirror Web play into the run-scoped DeckOS history so `history`
+                # reads the same in the terminal and the cyberdeck.
+                label = str(action)
+                for key in ("target", "ip", "node_id", "pid", "mode", "stance",
+                            "vector", "method", "daemon_type", "slot", "name"):
+                    value = payload.get(key)
+                    if value not in (None, ""):
+                        label += f" {value}"
+                        break
+                _record_history(engine, label[:160])
 
             if action == "save":
                 try:
@@ -789,6 +834,17 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
                 target = payload.get("target") or engine.state.current_node_id
                 daemon_type = payload.get("daemon_type", "keylogger")
                 ok, msg = engine.deploy_daemon(target, daemon_type)
+                self.send_json_response({"ok": ok, "message": msg, "state": self.server_session.get_full_state()})
+                return
+
+            if action == "kill_process":
+                try:
+                    pid = int(payload.get("pid", payload.get("target", 0)))
+                except (TypeError, ValueError):
+                    self.send_json_response({"ok": False, "error": "PID must be a number"}, HTTPStatus.BAD_REQUEST)
+                    return
+                from cyberpulse.deckos import kill_process as _kill
+                ok, msg = _kill(engine, pid)
                 self.send_json_response({"ok": ok, "message": msg, "state": self.server_session.get_full_state()})
                 return
 

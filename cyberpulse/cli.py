@@ -15,6 +15,7 @@ from typing import List, Optional
 from cyberpulse import __version__
 from cyberpulse.achievements import ACHIEVEMENTS, achievement_names
 from cyberpulse.daily import daily_modifier, daily_run
+from cyberpulse.deckos import record_history
 from cyberpulse.engine import GameEngine
 from cyberpulse.factions import rank_for
 from cyberpulse.models import CareerProfile, CyberDeck, NodeStatus, NodeType, node_visual
@@ -22,6 +23,62 @@ from cyberpulse.puzzles import BufferPuzzle, FrequencyPuzzle, HashCrackPuzzle
 from cyberpulse.shop import BlackMarketShop
 from cyberpulse.storage import SaveManager
 from cyberpulse.world import calculate_distance, clock_minute_text
+
+
+def print_deckos(engine: GameEngine) -> None:
+    info = engine.deckos_summary()
+    print("\n+==========================================================================+")
+    print("|                     >> DECKOS // LOCAL RIG <<                          |")
+    print("+==========================================================================+")
+    print(f"[*] Host: {info['hostname']} ({info['ip']}) | Uptime: {info['uptime']}")
+    print(f"[*] CPU: {info['cpu']} | Trace: {info['trace']}% | Alert: {info['alert']}%")
+    print(f"[*] Banked: {info['banked']} CR | Unbanked: {info['unbanked']} CR")
+    print("--------------------------------------------------------------------------")
+    print(" PID  NAME                 OWNER     CPU  NOTES")
+    for proc in info["processes"]:
+        print(f" {proc['pid']:<4} {proc['name'][:20]:<20} {proc['owner']:<9} {proc['cpu']:<3}  {proc['desc'][:44]}")
+    print("--------------------------------------------------------------------------")
+    print("Commands: ps | sysinfo | uptime | kill <pid> | history [n]")
+    print("+==========================================================================+")
+
+
+def print_arcs(engine: GameEngine) -> None:
+    data = engine.arcs_summary()
+    print("\n+==========================================================================+")
+    print("|                  >> OPERATIVE ARCS // LOYALTY <<                       |")
+    print("+==========================================================================+")
+    for arc in data["arcs"]:
+        nxt = f"next @ trust {arc['next_trust']}" if arc.get("next_trust") else "MAX"
+        print(f"[*] {arc['name']}: {arc['arc']} - {arc['stage_label']} ({arc['stage']}/3, {nxt})")
+        print(f"    > {arc['stage_text']}")
+        if arc.get("bonus"):
+            print(f"    + Bonus: {arc['bonus']}")
+    live = {k for k, v in (data.get("live") or {}).items() if v}
+    if live:
+        live_names = {"mira_decay": "Mira alert decay", "kilo_yield": "Kilo daemon yield",
+                      "kilo_overdrive": "Kilo cheap overdrive",
+                      "archivist_wipe": "Archivist deep scrub", "zero_counter": "Zero cheap trace"}
+        print("--------------------------------------------------------------------------")
+        print("[*] BONUS LIVE: " + ", ".join(live_names[k] for k in sorted(live) if k in live_names))
+    print("--------------------------------------------------------------------------")
+    print("Raise trust via contracts, jobs, and favors to unlock each arc stage.")
+    print("+==========================================================================+")
+
+
+def print_districts(engine: GameEngine) -> None:
+    rows = engine.district_summary()["districts"]
+    print("\n+==========================================================================+")
+    print("|                  >> DISTRICTS // STREET SIMULATION <<                  |")
+    print("+==========================================================================+")
+    for row in rows:
+        hosts = row.get("hosts", [])
+        print(f"[*] {row['name']:<16} load {row['load']:>3}% | patrol {row['patrol']:<8} | market {row['market_mood']} | {len(hosts)} hosts")
+        print(f"    > {row['flavor']}")
+        if hosts:
+            shown = ", ".join(hosts[:6])
+            extra = f" +{len(hosts) - 6} more" if len(hosts) > 6 else ""
+            print(f"    > grid: {shown}{extra}")
+    print("+==========================================================================+")
 
 
 def setup_terminal_encoding() -> None:
@@ -205,7 +262,8 @@ def print_contract(engine: GameEngine) -> None:
         print(f"[*] ACTIVE:    {contract.title} [{contract.risk_tier.upper()} RISK]")
         print(f"[*] Broker:    {giver}")
         print(f"[*] Objective: {contract.description or contract.objective_kind.upper()}")
-        print(f"[*] Target:    {contract.target_ip or contract.target_node_type}")
+        target_district = engine.offer_district(contract.target_ip or "")["district"]
+        print(f"[*] Target:    {contract.target_ip or contract.target_node_type} [{target_district}]")
         if contract.target_file:
             print(f"[*] Payload:   {contract.target_file}")
         print(f"[*] Stealth:   trace must stay <= {contract.max_trace_limit}% at confirmation")
@@ -234,7 +292,8 @@ def print_contract(engine: GameEngine) -> None:
         offer_clock = f"offer expires in {offer_left} turn(s)" if offer_left is not None else "no offer expiry"
         print(f"[{index}] {offer.title} [{offer.risk_tier.upper()} RISK] — {giver}")
         print(f"    {offer.description}")
-        print(f"    Target: {offer.target_ip or offer.target_node_type} | Window: {offer.deadline_turns} turns | {offer_clock}")
+        offer_district = engine.offer_district(offer.target_ip or "")["district"]
+        print(f"    Target: {offer.target_ip or offer.target_node_type} [{offer_district}] | Window: {offer.deadline_turns} turns | {offer_clock}")
         print(f"    Pay: +{offer.reward_creds} base (+{offer.bonus_creds} rush) | ACCEPT: accept_job {offer.contract_id}")
     print("+==========================================================================+")
 
@@ -257,7 +316,7 @@ def print_hunters(engine: GameEngine) -> None:
             dist_str = f"{dist} hop(s)" if dist >= 0 else "unreachable"
             confusion = f"CONFUSED ({h.confused_turns} turns left)" if h.confused_turns > 0 else "LOCK-ON"
             print(f"[*] Hunter Unit:     {h.name} [{h.status.upper()}]")
-            print(f"[*] Sector Location: {loc_name}")
+            print(f"[*] Sector Location: {loc_name} [{engine.host_district(h.current_node_id)['district']}]")
             print(f"[*] Proximity:       {dist_str} to your active rig")
             print(f"[*] Scent Tracking:  {confusion}")
             print(f"[*] Active Turns:    {h.turns_active}")
@@ -459,6 +518,13 @@ def print_world(engine: GameEngine) -> None:
     print(f"[*] Doctrine:   {summary['shift_effect']}")
     print(f"[*] Grid Alert: {summary['alert_level']}% [{summary['alert_tier']}] | Market: x{summary['market_multiplier']} black-market index")
     print(f"[*] Response:   Re-secured hosts: {summary['resecured_count']}")
+    districts = summary.get("districts", [])
+    if districts:
+        print("--------------------------------------------------------------------------")
+        print("Districts:")
+        for row in districts:
+            hosts = row.get("hosts", [])
+            print(f"   > {row['name']}: load {row['load']}% | patrol {row['patrol']} | market {row['market_mood']} | {len(hosts)} hosts")
     print("--------------------------------------------------------------------------")
     print("Latest headlines:")
     for item in summary["news"][-8:]:
@@ -502,6 +568,9 @@ def print_run_summary(engine: GameEngine) -> None:
     if summary.get("score") is not None:
         rank = f" | HALL #{summary['hall_rank']}" if summary.get("hall_rank") else ""
         print(f"[*] Score:       {summary['score']:,}{rank}")
+    compromised = summary.get("districts_compromised", [])
+    grid_line = ", ".join(compromised) if compromised else "none yet"
+    print(f"[*] Grid:        {summary.get('districts_compromised_count', 0)}/5 districts compromised ({grid_line})")
     real_contacts = [c for c in summary["contacts"] if c["trust"] > 0 or c["favor_used"]]
     if real_contacts:
         print("[*] Operatives:  " + ", ".join(
@@ -559,6 +628,8 @@ def print_contacts(engine: GameEngine) -> None:
         print(f"     \"{contact['dialogue']}\"")
         if contact.get("trust_dialogue"):
             print(f"     \"{contact['trust_dialogue']}\"")
+        if contact.get("arc_title"):
+            print(f"     [Arc: {contact['arc_title']} — {contact['arc_label']} ({contact['arc_stage']}/3)]")
     print("--------------------------------------------------------------------------")
     print("Talk: contact <handle> talk | Job: contact <handle> job | Favor: contact <handle> favor")
     print("+==========================================================================+")
@@ -745,6 +816,11 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         return True
     action = parts[0].lower()
     shop = BlackMarketShop()
+    if action not in ("save", "load", "saves", "reset", "reset_career", "rename",
+                      "rename_slot", "rename_save", "delete", "delete_save",
+                      "alias", "handle", "rename_alias", "replay", "seed",
+                      "q", "quit", "exit", "history", "hist"):
+        record_history(engine, cmd_line)
 
     if action in ("q", "quit", "exit"):
         print("👋 Neural link terminated.")
@@ -760,6 +836,47 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
 
     if action in ("world", "city", "grid"):
         print_world(engine)
+        return True
+
+    if action in ("districts", "district", "streets"):
+        print_districts(engine)
+        return True
+
+    if action in ("arcs", "loyalty", "arc"):
+        print_arcs(engine)
+        return True
+
+    if action in ("ps", "processes", "top"):
+        print_deckos(engine)
+        return True
+
+    if action in ("sysinfo", "sys", "rig"):
+        print_deckos(engine)
+        return True
+
+    if action == "uptime":
+        info = engine.deckos_summary()
+        print(f"Uptime: {info['uptime']} | Host: {info['hostname']} ({info['ip']})")
+        return True
+
+    if action in ("history", "hist"):
+        from cyberpulse.deckos import recent_history as _recent_history
+        limit = 10
+        if len(parts) > 1 and parts[1].isdigit():
+            limit = int(parts[1])
+        for idx, entry in enumerate(_recent_history(engine, limit), start=1):
+            print(f"{idx:>3}  {entry}")
+        return True
+
+    if action in ("kill", "killpid", "terminate"):
+        if len(parts) < 2 or not parts[1].isdigit():
+            print("Usage: kill <pid>  (run `ps` to list DeckOS processes)")
+            return True
+        ok, msg = engine.deckos_kill(int(parts[1])) if hasattr(engine, "deckos_kill") else (None, None)
+        if ok is None:
+            from cyberpulse.deckos import kill_process as _kill
+            ok, msg = _kill(engine, int(parts[1]))
+        print(msg)
         return True
 
     if action in ("lay_low", "laylow", "wait", "rest"):
@@ -1008,7 +1125,7 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         act = parts[1] if len(parts) > 1 else ""
         tgt = parts[2] if len(parts) > 2 else ""
         if not act:
-            print("Usage: forecast <scan|probe|overdrive|spoof|lay_low|quickhack|jackout> [target]")
+            print("Usage: forecast <scan|probe|overdrive|spoof|lay_low|quickhack|jackout|counter|wipe|move|social|bypass|evade|deploy|reveal|forge|proxy|sever|hunter> [target]")
             return True
         fc = engine.action_forecast(act, tgt)
         if not fc.get("ok"):
@@ -1349,7 +1466,7 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             print(f"No checkpoint in {label}.")
         return True
 
-    print(f"Unknown command: '{action}'. Commands: contract, bounty, accept_job, drop_offer, decline_contract, reroll, story, quests, contacts, contact, accept, world, news, hunter, counter, probe, exploit, cve, firewall, bypass, av, evade, social, phish, craft, workshop, keylogger, daemons, myip, myfiles, ls, cat, steal, wipe_logs, move, scan, overdrive, stance, proxy, quickhack, intel, spoof, cash_out, shop, buy, rival, counter_rival, tutorial, career, hall, alias, reset_career, status, save, load, saves, rename, delete, replay, quit")
+    print(f"Unknown command: '{action}'. Commands: contract, bounty, accept_job, drop_offer, decline_contract, reroll, story, quests, contacts, contact, accept, arcs, world, districts, news, hunter, counter, probe, exploit, cve, firewall, bypass, av, evade, social, phish, craft, workshop, keylogger, daemons, ps, sysinfo, uptime, kill, history, myip, myfiles, ls, cat, steal, wipe_logs, move, scan, overdrive, stance, proxy, quickhack, intel, spoof, cash_out, shop, buy, rival, counter_rival, tutorial, career, hall, alias, reset_career, status, save, load, saves, rename, delete, replay, quit")
     return True
 
 

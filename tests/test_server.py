@@ -1135,6 +1135,30 @@ class TestCyberdeckSaveSlotsAPI(unittest.TestCase):
         self.assertEqual(loaded["state"]["state"]["turns_elapsed"], 1)
 
 
+    def test_web_actions_mirror_into_deckos_history(self):
+        res = self._post({"action": "scan"})
+        self.assertIn("scan", res["state"]["state"].get("cmd_history", []))
+        # Meta actions stay out of the shell history.
+        saved = self._post({"action": "save", "slot": 1})
+        self.assertTrue(saved["ok"], saved.get("message"))
+        hist = saved["state"]["state"].get("cmd_history", [])
+        self.assertFalse(any(str(entry).startswith("save") for entry in hist))
+
+    def test_state_nodes_carry_district_tags(self):
+        session = self.server.RequestHandlerClass.server_session
+        tags = session.engine.node_districts()
+        self.assertTrue(tags)
+        self.assertEqual(set(tags), set(session.engine.nodes))
+        for nid, tag in tags.items():
+            self.assertIn("district", tag)
+            self.assertIn(tag["district_patrol"], ("light", "standard", "heavy"))
+        full = session.get_full_state()
+        self.assertTrue(full["state"]["contract_offers"])
+        for offer in full["state"]["contract_offers"]:
+            self.assertIn("district", offer)
+            self.assertIn(offer["district_patrol"], ("light", "standard", "heavy"))
+
+
 if __name__ == "__main__":
     unittest.main()
 

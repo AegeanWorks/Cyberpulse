@@ -10,7 +10,7 @@
 - **Total Classes**: `84`
 - **Total Top-Level Functions**: `122`
 - **Total Class Methods**: `820`
-- **Total Source Lines**: `18687`
+- **Total Source Lines**: `18691`
 
 ---
 
@@ -60,7 +60,7 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1619` lines (`75860` bytes)
+**Size**: `1623` lines (`76161` bytes)
 
 **Functions:**
 - `def print_deckos(engine)`

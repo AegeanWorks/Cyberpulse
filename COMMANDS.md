@@ -7,7 +7,7 @@
 | `myip` / `whoami` | Display player's local CyberDeck identity (`10.99.0.2` / `rig.netrunner.local`) | Virtual localhost identity & rig telemetry |
 | `myfiles` / `ls local` | List files on player's local CyberDeck drive (`/home/deck`, `/bin`, `/loot`) | Local rig file inspection & stolen loot archive |
 | `cat <file>` | Inspect local cyberdeck files or remote breached host files | Data surveillance & loot inspection |
-| `probe <ip>` / `nmap <ip>` | Scan open network ports, service banners, and software versions; reports OS, uptime, patch train, and staff on shift | Reconnaissance & vulnerability detection |
+| `probe <ip>` / `nmap <ip>` | Scan open network ports, service banners, and software versions; reports OS, uptime, patch train, staff on shift, and the host's street district with live patrol | Reconnaissance & vulnerability detection |
 | `traceroute <ip>` / `route <ip>` | Trace hop path and per-hop latency from the active terminal to the target | Route planning & network topography |
 | `firewall <ip>` / `fw` | Inspect target host network firewall rules and packet filtering policies | Perimeter security intelligence |
 | `bypass <ip> <port> [m]` | Bypass blocked firewall port via `knock`, `fragment`, or `tunnel` | Ingress filtering bypass & packet crafting |
@@ -26,11 +26,17 @@
 | `wipe_logs [ip]` | Clear access logs and sanitize intruder timestamps (drops active ICE trace by 20%) | Anti-forensics & trace mitigation |
 | `move <ip>` / `ssh <ip>` | Transfer your active terminal session to an adjacent breached host | Network lateral movement |
 | `scan` | Scan surrounding connected nodes to reveal topology and IP addresses | Information foraging & strategic autonomy |
+| `ps` / `processes` / `sysinfo` / `rig` | Open the DeckOS panel: local rig specs, uptime, and the live process table | In-game computer awareness & system telemetry |
+| `kill <pid>` | Terminate a killable DeckOS process (rogue miners reclaim 1 CPU; daemons are recalled) | Computer process control & resource recovery |
+| `uptime` | Show rig uptime in turns and wall-clock minutes | Computer session awareness |
+| `history [n]` | Show the last n commands of this run (run-scoped, max 50) | Computer shell recall |
+| `arcs` / `loyalty` | Show operative loyalty arcs: stage, trust thresholds, and arc fiction | Character-arc tracking & relationship progress |
+| `districts` / `streets` | Show the five street districts: load, patrol weight, market mood | Street-level simulation awareness |
 | `spoof` | Burn 3 CPU cycles to bounce your proxy and reduce security trace by 25% | Risk mitigation & resource trade-offs |
-| `overdrive` | Burn 2 CPU and 8% trace to stack +1 combo and +10 unbanked credits | Voluntary risk, combo priming & dopamine anticipation |
+| `overdrive` | Burn 2 CPU (1 with Kilo's arc) and 8% trace to stack +1 combo and +10 unbanked credits | Voluntary risk, combo priming & dopamine anticipation |
 | `stance <mode>` / `proxy <ip>` / `quickhack <ip>` / `intel <reveal\|forge>` | Shift deck stance, route a proxy hop, instant-breach a tier 1-2 host, or spend threat intel | Tactical resource & risk modulation |
 | `lay_low [1-3]` / `wait` | Ghost the connection for 1-3 turns: +1 CPU and up to -2% trace per turn while the grid keeps moving | Downtime recovery & shift-aware risk management |
-| `forecast <action> [target]` / `preview` / `odds` | Preview CPU/trace/turn costs before committing (`scan`, `probe`, `overdrive`, `spoof`, `lay_low`, `quickhack`, `jackout`) | Risk transparency & informed push-your-luck |
+| `forecast <action> [target]` / `preview` / `odds` | Preview CPU/trace/turn costs before committing (all 19 previewable actions incl. `hunter` countermeasures) — arc discounts, district effects, and lure odds shown | Risk transparency & informed push-your-luck |
 | `world` / `city` / `grid` | Show the in-game clock, shift doctrine, grid alert, market index, daily modifier, and latest headlines | Living world awareness & consequence telemetry |
 | `news` / `wire` | Read the generated grid news wire (`news 20` for a longer feed) | Diegetic feedback & attribution of events |
 | `hunter` / `radar` | Display active NetWatch Hunter threat assessment, location, distance, and scent | Counter-surveillance & proximity telemetry |

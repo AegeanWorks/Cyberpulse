@@ -3,31 +3,15 @@
   "active_task": {
     "task_id": "audit-push7",
     "last_phase": "phase 4",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793567243.398043,
     "owner": "kilo:1",
     "started_by": "kilo:1",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793567262.080789
   },
   "checkpoints": [
-    {
-      "task_id": "gfx-ui-pass4",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Runtime smoke: add inline favicon, verify matrix render",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793565625.9800744,
-      "timestamp_str": "2026-11-01 23:40:25",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "smoke run shows favicon 404 as only console error",
-        "benefits": "zero console errors, cleaner first paint",
-        "risks": "contract: static HTML head only; dependency: zero-dep data URI; concurrency: none; state: none",
-        "mitigation": "single link tag, re-screenshot, full suite"
-      }
-    },
     {
       "task_id": "gfx-ui-pass4",
       "phase": "phase 4",
@@ -265,6 +249,16 @@
       "status": "in_progress",
       "timestamp": 1793567243.398043,
       "timestamp_str": "2026-11-02 00:07:23",
+      "agent": "kilo:1"
+    },
+    {
+      "task_id": "audit-push7",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'audit-push7' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793567262.080791,
+      "timestamp_str": "2026-11-02 00:07:42",
       "agent": "kilo:1"
     }
   ]

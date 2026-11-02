@@ -131,10 +131,13 @@ class TestStorage(unittest.TestCase):
         loaded = self.save_mgr.load()
 
         self.assertIsNotNone(loaded)
-        self.assertEqual(len(loaded.state.quests), 7)
+        self.assertEqual(len(loaded.state.quests), 9)
         self.assertEqual(len(loaded.state.contacts), 4)
         self.assertTrue(loaded.state.story_log)
         self.assertEqual(loaded.state.story_choice, "")
+        ids = {q.quest_id for q in loaded.state.quests}
+        self.assertIn("q_arc_cold_wallet", ids)
+        self.assertIn("q_arc_dead_letter", ids)
 
     def test_career_save_and_load(self):
         profile = CareerProfile(
