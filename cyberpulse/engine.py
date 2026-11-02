@@ -18,8 +18,21 @@ from cyberpulse.factions import (
     street_discount,
     update_standing,
 )
-from cyberpulse.rivals import generate_rival
+from cyberpulse.rivals import generate_rival, rival_move_delay
 from cyberpulse.scoring import score_run
+from cyberpulse.deckos import kill_process as deckos_kill
+from cyberpulse.deckos import list_processes as deckos_procs
+from cyberpulse.deckos import recent_history as deckos_history
+from cyberpulse.deckos import sysinfo as deckos_sysinfo
+from cyberpulse.arcs import ARC_DEFS as ARCS_DEFS
+from cyberpulse.arcs import arc_epilogue_lines as arcs_epilogue_lines
+from cyberpulse.arcs import arc_stage as arcs_stage
+from cyberpulse.arcs import district_for_node as arcs_district_for_node
+from cyberpulse.arcs import stage_info as arcs_stage_info
+from cyberpulse.arcs import arc_status as arcs_status
+from cyberpulse.arcs import district_grid as arcs_districts
+from cyberpulse.arcs import ensure_arc_quests
+from cyberpulse.arcs import live_bonuses as arcs_live_bonuses
 from cyberpulse.tutorial import tutorial_steps
 from cyberpulse.models import (
     BountyContract,
@@ -302,6 +315,7 @@ class GameEngine:
         self.state.quests = initial_quests()
         self.state.contacts = initial_contacts()
         self.state.rival = generate_rival(self.seed)
+        ensure_arc_quests(self)
         if self.difficulty == "easy":
             self.deck.max_cpu += 2
             self.deck.cpu_cycles = self.deck.max_cpu
@@ -365,6 +379,33 @@ class GameEngine:
                 newly_accepted.append(quest)
         for quest in newly_accepted:
             self._reconcile_quest_progress(quest)
+
+    def _contact_trust(self, contact_id: str) -> int:
+        """Trust level for an operative (0 when the contact is missing)."""
+        contact = self._find_contact(contact_id)
+        return int(getattr(contact, "trust", 0)) if contact else 0
+
+    def _adjust_trust(self, contact: Any, delta: int) -> Optional[str]:
+        """Shift an operative's trust, announcing loyalty-arc stage crossings.
+
+        Returns the arc-unlock line when the change opens a new arc stage,
+        else None. Decreases never announce.
+        """
+        if contact is None or not delta:
+            return None
+        before = arcs_stage(contact.contact_id, int(contact.trust))
+        contact.trust = max(-1, int(contact.trust) + int(delta))
+        after = arcs_stage(contact.contact_id, int(contact.trust))
+        if after <= before:
+            return None
+        info = arcs_stage_info(contact.contact_id, after)
+        line = (
+            f"🌟 ARC ADVANCE — {contact.name}: {info['label']} "
+            f"(stage {after}/3). {info['bonus']}"
+        )
+        self._log_story(line)
+        self.state.message_log.append(line)
+        return line
 
     def _quest_progress_from_state(self, quest: Quest) -> int:
         """Progress the world already holds for a one-shot objective."""
@@ -496,9 +537,10 @@ class GameEngine:
         giver = self._find_contact(quest.giver)
 
         quest.accepted = True
-        if giver:
-            giver.trust += 1
+        arc_line = self._adjust_trust(giver, 1) if giver else None
         message = f"📜 QUEST ACCEPTED: {quest.title} — {quest.description}"
+        if arc_line:
+            message += f"\n{arc_line}"
         self._log_story(message)
         self.state.message_log.append(message)
 
@@ -587,6 +629,11 @@ class GameEngine:
             tier_line = trust_dialogue_for(contact.contact_id, contact.trust_tier)
             if tier_line:
                 line = f"{line}\n{tier_line}"
+            stage = arcs_stage(contact.contact_id, int(contact.trust))
+            if stage:
+                info = arcs_stage_info(contact.contact_id, stage)
+                title = ARCS_DEFS.get(contact.contact_id, {}).get("title", "arc")
+                line = f"{line}\n[{contact.name} — {title} arc, stage {stage}/3: {info['label']}]"
             self.state.message_log.append(line)
             report["dialogue"] = line
             return True, line, report
@@ -601,7 +648,7 @@ class GameEngine:
 
             if mode_key == "ally":
                 self.state.story_choice = "zero_ally"
-                contact.trust += 3
+                arc_line = self._adjust_trust(contact, 3)
                 if "ghost_protocol" in self.deck.exploits:
                     self.state.unbanked_creds += 150
                     reward = "Zero wires 150 unbanked Creds."
@@ -609,14 +656,17 @@ class GameEngine:
                     self.deck.exploits.append("ghost_protocol")
                     reward = "Zero shares a ghost_protocol exploit chip."
                 message = f"🤝 ALLIANCE FORGED: {CHOICE_LABELS['zero_ally']}. {reward}"
+                if arc_line:
+                    message += f"\n{arc_line}"
             else:
                 self.state.story_choice = "zero_defy"
-                contact.trust = max(-1, contact.trust - 1)
+                self._adjust_trust(contact, -1)
                 mira = self._find_contact("mira")
-                if mira:
-                    mira.trust += 2
+                mira_line = self._adjust_trust(mira, 2) if mira else None
                 self.state.unbanked_creds += 150
                 message = f"⚔️ DEFIANCE DECLARED: {CHOICE_LABELS['zero_defy']}. Mira wires 150 unbanked Creds."
+                if mira_line:
+                    message += f"\n{mira_line}"
 
             self._log_story(message)
             self.state.message_log.append(message)
@@ -650,7 +700,9 @@ class GameEngine:
                 contact.bonus_favor_used = True
             else:
                 contact.favor_used = True
-            contact.trust += 1
+            arc_line = self._adjust_trust(contact, 1)
+            if arc_line:
+                message += f"\n{arc_line}"
             self._log_story(f"FAVOR: {contact.name} — {message}")
             self.state.message_log.append(message)
             report["favor_used"] = contact.favor_used
@@ -670,6 +722,7 @@ class GameEngine:
             self.state.quests = initial_quests()
         if not self.state.contacts:
             self.state.contacts = initial_contacts()
+        ensure_arc_quests(self)
         # A swapped-in save may carry a different alert level than the fresh engine,
         # so resync the corporate posture baseline silently on the next grid pulse.
         self._last_alert_tier = None
@@ -704,7 +757,62 @@ class GameEngine:
             nearest_name = active[0].name
         summary["nearest_hunter_distance"] = dist
         summary["nearest_hunter_name"] = nearest_name
+        summary["districts"] = arcs_districts(self.seed, int(self.state.turns_elapsed),
+                                              int(self.state.world.alert_level))
         return summary
+
+    def deckos_summary(self) -> Dict[str, Any]:
+        """In-game computer snapshot: sysinfo + process table (Web/CLI DeckOS panel)."""
+        info = deckos_sysinfo(self)
+        info["processes"] = deckos_procs(self)
+        return info
+
+    def arcs_summary(self) -> Dict[str, Any]:
+        """Operative loyalty-arc tracker for CLI/Web/dossier consumers."""
+        return {"arcs": arcs_status(self.state.contacts), "live": arcs_live_bonuses(self)}
+
+    def district_summary(self) -> Dict[str, Any]:
+        """Street-level district simulation rows for the living-grid ticker."""
+        rows = arcs_districts(self.seed, int(self.state.turns_elapsed),
+                              int(self.state.world.alert_level))
+        hosts_by_key: Dict[str, List[str]] = {}
+        for node_id in self.nodes:
+            key = arcs_district_for_node(self.seed, node_id)["key"]
+            hosts_by_key.setdefault(key, []).append(node_id)
+        for row in rows:
+            row["hosts"] = sorted(hosts_by_key.get(row["key"], []))
+        return {"districts": rows}
+
+    def host_district(self, node_id: str) -> Dict[str, Any]:
+        """Street-layer address of a host: its district plus live patrol/load/mood."""
+        mapping = arcs_district_for_node(self.seed, node_id)
+        live = {row["key"]: row for row in arcs_districts(
+            self.seed, int(self.state.turns_elapsed), int(self.state.world.alert_level))}
+        row = live.get(mapping["key"], {})
+        return {"district": mapping["name"], "district_key": mapping["key"],
+                "flavor": mapping.get("flavor", ""),
+                "patrol": row.get("patrol", "standard"),
+                "load": row.get("load", 0),
+                "market_mood": row.get("market_mood", "steady")}
+
+    def offer_district(self, target_ip: str = "", target_node_type: str = "") -> Dict[str, str]:
+        """Street address of a contract target for board display."""
+        node = self.find_node(target_ip) if target_ip else None
+        if node is None:
+            return {"district": "WILDCAT GRID", "district_patrol": "standard"}
+        hood = self.host_district(node.node_id)
+        return {"district": hood["district"], "district_patrol": hood["patrol"]}
+
+    def node_districts(self) -> Dict[str, Dict[str, str]]:
+        """Compact per-host district tags for Web/CLI consumers."""
+        grid = {row["key"]: row for row in arcs_districts(
+            self.seed, int(self.state.turns_elapsed), int(self.state.world.alert_level))}
+        out: Dict[str, Dict[str, str]] = {}
+        for node_id in self.nodes:
+            mapping = arcs_district_for_node(self.seed, node_id)
+            out[node_id] = {"district": mapping["name"],
+                            "district_patrol": grid.get(mapping["key"], {}).get("patrol", "standard")}
+        return out
 
     def news_feed(self, limit: int = 12) -> List[Dict[str, Any]]:
         """Return the newest living-grid headlines, oldest first."""
@@ -735,6 +843,9 @@ class GameEngine:
             choice_line = CHOICE_EPILOGUES.get(self.state.story_choice)
             if choice_line:
                 epilogue.append(choice_line)
+            # Zero's arc (trust 6+): equals get a longer goodbye.
+            if arcs_stage("zero", self._contact_trust("zero")) >= 3:
+                epilogue.append("Zero keeps a chair open for you now. Equals don't knock.")
         if main_complete and outcome == "victory":
             epilogue.append("Every act of the NEXUS file is closed. The next story starts without you.")
         for contact in self.state.contacts:
@@ -742,6 +853,7 @@ class GameEngine:
                 line = CONTACT_EPILOGUES.get(contact.contact_id)
                 if line:
                     epilogue.append(line)
+        epilogue.extend(arcs_epilogue_lines(self.state.contacts))
         for threshold in sorted(COMBO_EPILOGUES, reverse=True):
             if self.state.best_combo >= threshold:
                 epilogue.append(COMBO_EPILOGUES[threshold])
@@ -756,6 +868,14 @@ class GameEngine:
             "turns_elapsed": self.state.turns_elapsed,
             "nodes_breached": sum(
                 1 for node in self.nodes.values() if node.status == NodeStatus.BREACHED
+            ),
+            "districts_compromised": sorted(
+                {self.host_district(node_id)["district"] for node_id, node in self.nodes.items()
+                 if node.status == NodeStatus.BREACHED}
+            ),
+            "districts_compromised_count": len(
+                {self.host_district(node_id)["district_key"] for node_id, node in self.nodes.items()
+                 if node.status == NodeStatus.BREACHED}
             ),
             "unbanked_credits_lost": 0 if outcome != "lockout" else self.state.lost_creds,
             "trace_percent": self.state.trace_percent,
@@ -817,6 +937,12 @@ class GameEngine:
                 or (contact.trust >= 6 and not contact.bonus_favor_used)
             )
             data["favor_description"] = FAVOR_DESCRIPTIONS.get(contact.contact_id, "")
+            arc_spec = ARCS_DEFS.get(contact.contact_id, {})
+            arc_stage_no = arcs_stage(contact.contact_id, contact.trust)
+            data["arc_title"] = arc_spec.get("title", "")
+            data["arc_stage"] = arc_stage_no
+            stages = arc_spec.get("stages", ())
+            data["arc_label"] = stages[arc_stage_no - 1]["label"] if arc_stage_no else "Unproven"
             data["pact_available"] = (
                 contact.contact_id == "zero"
                 and self.state.story_act >= 3
@@ -1007,20 +1133,28 @@ class GameEngine:
             node = self.find_node(str(target or ""))
             if node is None:
                 return {"ok": False, "action": act, "reason": "No such host."}
+            notes = "Lists open ports; +1 CPU (capped at max)."
+            if (node.node_type == NodeType.ICE_DEFENSE
+                    and arcs_stage("zero", self._contact_trust("zero")) >= 2):
+                notes += " Zero's read: Black ICE counter-rotation inside."
             return {
                 "ok": True, "action": act, "target": node.node_id,
                 "cpu_delta": 1, "trace_gain": self.mitigated_trace(4), "turns": 1,
-                "notes": "Lists open ports; +1 CPU (capped at max).",
+                "notes": notes,
             }
         if act == "overdrive":
-            if self.deck.cpu_cycles < 2:
-                return {"ok": False, "action": act, "reason": "Need 2 CPU."}
+            cost = 1 if arcs_stage("kilo", self._contact_trust("kilo")) >= 1 else 2
+            if self.deck.cpu_cycles < cost:
+                return {"ok": False, "action": act, "reason": f"Need {cost} CPU."}
             if self.state.trace_percent >= 92:
                 return {"ok": False, "action": act, "reason": "Trace too high."}
+            notes = "+1 combo, +10 Creds unbanked."
+            if cost == 1:
+                notes += " Kilo arc discount applied."
             return {
-                "ok": True, "action": act, "cpu_delta": -2,
+                "ok": True, "action": act, "cpu_delta": -cost,
                 "trace_gain": self.mitigated_trace(8), "turns": 0,
-                "notes": "+1 combo, +10 Creds unbanked.",
+                "notes": notes,
             }
         if act in ("spoof", "spoof_ip"):
             if self.deck.cpu_cycles < 3:
@@ -1068,11 +1202,16 @@ class GameEngine:
             cpu_cost = 2 + node.security_level
             if self.deck.cpu_cycles < cpu_cost:
                 return {"ok": False, "action": act, "reason": f"Need {cpu_cost} CPU."}
+            heat = 0
+            heat_note = ""
+            if self.host_district(node.node_id)["patrol"] == "heavy":
+                heat = self.mitigated_trace(1)
+                heat_note = " District heat: +1% trace under heavy patrol."
             return {
                 "ok": True, "action": act, "target": node.node_id,
                 "cpu_delta": -cpu_cost,
-                "trace_gain": self.mitigated_trace(10 + node.security_level * 4),
-                "turns": 1, "notes": "Skips the mini-game; pays full breach trace.",
+                "trace_gain": self.mitigated_trace(10 + node.security_level * 4) + heat,
+                "turns": 1, "notes": "Skips the mini-game; pays full breach trace." + heat_note,
             }
         if act == "jackout":
             risk = self.extraction_risk()
@@ -1081,6 +1220,224 @@ class GameEngine:
                 "trace_gain": risk["surge"], "turns": 0,
                 "projected_trace": risk["projected_trace"],
                 "lethal": risk["lethal"], "notes": "Banks all unbanked loot.",
+            }
+        if act in ("counter_rival", "counter"):
+            rival = self.state.rival
+            if rival is None or rival.status != "active":
+                return {"ok": False, "action": act, "reason": "No active rival."}
+            cost = 1 if arcs_stage("zero", self._contact_trust("zero")) >= 1 else 2
+            if self.deck.cpu_cycles < cost:
+                return {"ok": False, "action": act, "reason": f"Need {cost} CPU."}
+            notes = "Delays the rival board grab by 5 turns."
+            if cost == 1:
+                notes += " Zero arc discount applied."
+            return {
+                "ok": True, "action": act, "cpu_delta": -cost,
+                "trace_gain": 0, "turns": 0, "notes": notes,
+            }
+        if act in ("wipe_logs", "wipe"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            if node.status != NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Host is not breached."}
+            scrub = 25 if arcs_stage("archivist", self._contact_trust("archivist")) >= 2 else 20
+            notes = "Sanitizes access logs; the grid advances one turn."
+            if scrub > 20:
+                notes += " Archivist deep scrub applied."
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": 0, "trace_gain": 0,
+                "trace_reduction": min(scrub, self.state.trace_percent),
+                "projected_trace": max(0, self.state.trace_percent - scrub),
+                "turns": 1, "notes": notes,
+            }
+        if act in ("move", "hop", "transfer"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            allowed, reason = self.can_move_to(node.node_id)
+            if not allowed:
+                return {"ok": False, "action": act, "reason": reason}
+            notes = "Transfers the terminal; +1 CPU (capped at max)."
+            from_hood = self.host_district(self.state.current_node_id)
+            to_hood = self.host_district(node.node_id)
+            if from_hood["district_key"] != to_hood["district_key"]:
+                notes += f" Enters {to_hood['district']} grid ({to_hood['flavor']})."
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": 1, "trace_gain": self.mitigated_trace(2),
+                "turns": 1, "notes": notes,
+            }
+        if act in ("social", "social_engineer", "phish"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            if node.status == NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Host is already compromised."}
+            curr = self.get_current_node()
+            if node.node_id not in curr.connected_ids and node.node_id != curr.node_id:
+                return {"ok": False, "action": act, "reason": "Target is out of subnet range."}
+            if self.deck.cpu_cycles < 1:
+                return {"ok": False, "action": act, "reason": "Need 1 CPU."}
+            vector_key = SocialVectorType.SPEAR_PHISH
+            emp = node.employees[0] if node.employees else None
+            if emp is None:
+                emp = EmployeeProfile(name="Staff Associate", role="Operations",
+                                      email=f"staff@{node.hostname}",
+                                      awareness_level=SecurityAwarenessLevel.STANDARD)
+            chance, shift = self._social_success_chance(node, vector_key, emp)
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -1, "trace_gain": self.mitigated_trace(6),
+                "turns": 1,
+                "notes": f"Spear-phish vs {emp.name} ({emp.awareness_level}): ~{chance:.0%} success on {shift} shift, {self.host_district(node.node_id)['district']} grid.",
+            }
+        if act in ("bypass", "bypass_firewall", "fw"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            curr = self.get_current_node()
+            if node.node_id not in curr.connected_ids and node.node_id != curr.node_id:
+                return {"ok": False, "action": act, "reason": "Target is out of subnet range."}
+            if not node.firewall or not node.firewall.enabled:
+                return {"ok": False, "action": act, "reason": "Host has no active firewall."}
+            blocked = [r for r in (node.firewall.rules or []) if r.action == "BLOCK" and not r.bypassed]
+            if not blocked:
+                return {"ok": False, "action": act, "reason": "No blocked ports to bypass."}
+            if self.deck.cpu_cycles < 1:
+                return {"ok": False, "action": act, "reason": "Need 1 CPU."}
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -1, "trace_gain": self.mitigated_trace(5),
+                "turns": 1,
+                "notes": f"Knock opens a blocked port ({len(blocked)} blocked); fragment 7% / tunnel 2 CPU 9% hit harder.",
+            }
+        if act in ("evade", "evade_av", "av"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            curr = self.get_current_node()
+            if node.node_id not in curr.connected_ids and node.node_id != curr.node_id:
+                return {"ok": False, "action": act, "reason": "Target is out of subnet range."}
+            if not node.antivirus or not node.antivirus.enabled:
+                return {"ok": False, "action": act, "reason": "Host has no active Antivirus to evade."}
+            if node.antivirus.evaded:
+                return {"ok": False, "action": act, "reason": "Antivirus is already evaded."}
+            if self.deck.cpu_cycles < 2:
+                return {"ok": False, "action": act, "reason": "Need 2 CPU."}
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -2, "trace_gain": self.mitigated_trace(6),
+                "turns": 1,
+                "notes": "Rootkit blinds EDR and drops its alert 35%; spoof costs 1 CPU but +8% trace.",
+            }
+        if act in ("deploy", "daemon", "keylogger"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            if node.status != NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Host is not breached."}
+            if any(d.target_node_id == node.node_id and d.daemon_type == "keylogger"
+                   for d in self.deck.active_daemons):
+                return {"ok": False, "action": act, "reason": "Keylogger already running on this host."}
+            if self.deck.cpu_cycles < 2:
+                return {"ok": False, "action": act, "reason": "Need 2 CPU."}
+            daemon_yield = 15 + node.security_level * 5
+            boosted = arcs_stage("kilo", self._contact_trust("kilo")) >= 2
+            if boosted:
+                daemon_yield += max(1, daemon_yield // 10)
+            notes = (f"+{daemon_yield} unbanked Creds/turn passive siphon, +3% trace/tick exposure, "
+                     "+2 alert on install.")
+            if boosted:
+                notes += " Kilo arc yield applied."
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -2, "trace_gain": 0, "turns": 0, "notes": notes,
+            }
+        if act in ("reveal", "intel_reveal"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "Intel reveal needs a known host."}
+            if node.status == NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Host is already breached."}
+            if self.deck.threat_intel_count < 1:
+                return {"ok": False, "action": act, "reason": "Need 1 intel fragment."}
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": 0, "trace_gain": 0, "turns": 0, "intel_delta": -1,
+                "notes": "Remote deep scan: services, vulns, blocked ports, EDR. No trace, no clock.",
+            }
+        if act in ("forge", "intel_forge"):
+            if "zero_day_forge" in self.deck.exploits:
+                return {"ok": False, "action": act, "reason": "A zero_day_forge chip is already loaded."}
+            if self.deck.threat_intel_count < 2:
+                return {"ok": False, "action": act, "reason": "Need 2 intel fragments."}
+            return {
+                "ok": True, "action": act,
+                "cpu_delta": 0, "trace_gain": 0, "turns": 0, "intel_delta": -2,
+                "notes": "Mints zero_day_forge: breach any adjacent host outright.",
+            }
+        if act in ("proxy", "tunnel", "proxy_hop"):
+            node = self.find_node(str(target or ""))
+            if node is None:
+                return {"ok": False, "action": act, "reason": "No such host."}
+            if node.status != NodeStatus.BREACHED:
+                return {"ok": False, "action": act, "reason": "Host is not breached."}
+            if node.node_id == self.state.current_node_id:
+                return {"ok": False, "action": act, "reason": "Cannot proxy through the active terminal host."}
+            if node.node_id in self.deck.proxy_chain:
+                return {"ok": False, "action": act, "reason": "Host is already in the proxy chain."}
+            if len(self.deck.proxy_chain) >= 3:
+                return {"ok": False, "action": act, "reason": "Proxy chain limit reached (max 3 hops)."}
+            if self.deck.cpu_cycles < 1:
+                return {"ok": False, "action": act, "reason": "Need 1 CPU."}
+            dampen = min(45, (len(self.deck.proxy_chain) + 1) * 15)
+            return {
+                "ok": True, "action": act, "target": node.node_id,
+                "cpu_delta": -1, "trace_gain": 0, "turns": 0,
+                "notes": f"Splice tunnel ({len(self.deck.proxy_chain) + 1}/3 hops): -{dampen}% trace generation.",
+            }
+        if act in ("sever", "sever_proxy", "burn_proxy"):
+            if not self.deck.proxy_chain:
+                return {"ok": False, "action": act, "reason": "No active proxy hops to sever."}
+            return {
+                "ok": True, "action": act,
+                "cpu_delta": 0, "trace_gain": 0,
+                "trace_reduction": min(15, self.state.trace_percent),
+                "projected_trace": max(0, self.state.trace_percent - 15),
+                "turns": 0, "notes": "Burn a tunnel hop to dump 15% trace immediately.",
+            }
+        if act in ("counter_hunter", "hunter", "countermeasure"):
+            active_hunters = [h for h in self.state.world.hunters
+                              if h.status in ("hunting", "confused", "intercepted")]
+            if not active_hunters:
+                return {"ok": False, "action": act, "reason": "No active NetWatch hunters."}
+            hunter = active_hunters[0]
+            options = []
+            ready = False
+            if "logic_bomb" in self.deck.exploits:
+                options.append("logic_bomb READY (neutralize)")
+                ready = True
+            else:
+                options.append("logic_bomb MISSING chip")
+            if "ghost_protocol" in self.deck.exploits:
+                options.append("ghost_protocol READY (-30% trace, banish)")
+                ready = True
+            else:
+                options.append("ghost_protocol MISSING chip")
+            if self.deck.cpu_cycles >= 3:
+                options.append("cpu_burst READY (3 CPU, confuse 3 turns)")
+                ready = True
+            else:
+                options.append("cpu_burst NEEDS 3 CPU")
+            if not ready:
+                return {"ok": False, "action": act,
+                        "reason": f"{hunter.name} is active but no countermeasure is available."}
+            return {
+                "ok": True, "action": act, "target": hunter.current_node_id,
+                "cpu_delta": 0, "trace_gain": 0, "turns": 0,
+                "notes": f"{hunter.name} ({hunter.status}) is the target. " + "; ".join(options) + ".",
             }
         return {"ok": False, "action": act, "reason": f"Unknown action '{act}'."}
 
@@ -1296,14 +1653,18 @@ class GameEngine:
         rival = self.state.rival
         if rival is None or rival.status != "active":
             return False, "No active rival netrunner to counter."
-        if self.deck.cpu_cycles < 2:
-            return False, "Counter-trace needs 2 CPU cycles."
-        self.deck.cpu_cycles -= 2
+        # Zero's arc (trust 2+): she feeds you the rival's schedule, halving the cost.
+        cost = 1 if arcs_stage("zero", self._contact_trust("zero")) >= 1 else 2
+        if self.deck.cpu_cycles < cost:
+            return False, f"Counter-trace needs {cost} CPU cycle(s)."
+        self.deck.cpu_cycles -= cost
         rival.next_move_turn += 5
         message = (
             f"🛰️ [RIVAL] Counter-traced {rival.name}; their next board move is delayed "
             f"by 5 turns (ETA {max(0, rival.next_move_turn - self.state.turns_elapsed)}T)."
         )
+        if cost == 1:
+            message += " [ZERO ARC: discounted trace]"
         self.state.message_log.append(message)
         return True, message
 
@@ -1321,7 +1682,7 @@ class GameEngine:
         if self.state.contract_offers:
             offer = self.state.contract_offers.pop(rng.randrange(len(self.state.contract_offers)))
             rival.contracts_stolen += 1
-            delay = max(4, 8 - rival.skill) + rng.randint(0, 2)
+            delay = rival_move_delay(rival.skill, self.state.story_act, rng.randint(0, 2))
             rival.next_move_turn = now + delay
             message = (
                 f"🕶️ [RIVAL] {rival.name} ({rival.handle}) snatched '{offer.title}' "
@@ -1339,7 +1700,7 @@ class GameEngine:
 
         pressure = 2 + rival.skill
         self.add_trace(pressure)
-        delay = max(4, 8 - rival.skill) + rng.randint(0, 2)
+        delay = rival_move_delay(rival.skill, self.state.story_act, rng.randint(0, 2))
         rival.next_move_turn = now + delay
         message = (
             f"🕶️ [RIVAL] {rival.name} pinged your link looking for work "
@@ -1438,6 +1799,31 @@ class GameEngine:
             if self.state.is_game_over:
                 return messages
 
+        # Street simulation bites back: under BLACK alert, two or more
+        # heavy-patrol districts run coordinated sweeps (+1 trace).
+        if world.alert_level >= 75:
+            heavy = [d for d in arcs_districts(self.seed, int(self.state.turns_elapsed),
+                                               int(world.alert_level))
+                     if d["patrol"] == "heavy"]
+            if len(heavy) >= 2:
+                self.add_trace(1)
+                names = ", ".join(d["name"] for d in heavy[:2])
+                sweep_msg = (
+                    f"🚨 [DISTRICT SWEEP] {names} run a coordinated NetWatch sweep "
+                    "(+1% trace)."
+                )
+                messages.append(sweep_msg)
+                self.state.message_log.append(sweep_msg)
+                record_news(
+                    world,
+                    self.state.turns_elapsed,
+                    "NetWatch",
+                    f"Coordinated sweeps hit {names}; runners report burned proxies.",
+                    tone="alert",
+                )
+                if self.state.is_game_over:
+                    return messages
+
         for node_id in plan_resecures(
             self.seed,
             self.state.turns_elapsed,
@@ -1448,6 +1834,7 @@ class GameEngine:
         ):
             node = self.nodes[node_id]
             message = apply_resecure(node)
+            message += f" ({self.host_district(node_id)['district']} grid back under corporate control.)"
             if node_id in self.deck.proxy_chain:
                 self.deck.proxy_chain.remove(node_id)
                 message += " Proxy tunnel collapsed."
@@ -1459,7 +1846,7 @@ class GameEngine:
                 world,
                 self.state.turns_elapsed,
                 "NetWatch",
-                f"Sysadmins re-secured {node.hostname}; intruder access revoked.",
+                f"Sysadmins re-secured {node.hostname} ({self.host_district(node_id)['district']} grid); intruder access revoked.",
                 tone="alert",
             )
             messages.append(message)
@@ -1469,9 +1856,11 @@ class GameEngine:
         if deployed_hunter:
             spawn_node = self.nodes.get(deployed_hunter.current_node_id)
             spawn_name = spawn_node.name if spawn_node else deployed_hunter.current_node_id
+            spawn_hood = self.host_district(deployed_hunter.current_node_id)
             hunter_msg = (
                 f"🚨 [NETWATCH HUNTER] Critical grid alert {world.alert_level}% triggered deployment of "
-                f"{deployed_hunter.name} at {spawn_name}!"
+                f"{deployed_hunter.name} at {spawn_name} — {spawn_hood['district']} grid, "
+                f"patrols {spawn_hood['patrol']}."
             )
             messages.append(hunter_msg)
             self.state.message_log.append(hunter_msg)
@@ -1494,7 +1883,8 @@ class GameEngine:
                 self.deck.cpu_cycles = max(0, self.deck.cpu_cycles - 2)
                 inter_msg = (
                     f"💥 [NETWATCH CLASH] {hunter.name} intercepted your connection at {curr_node.name}! "
-                    f"CPU drained (-{cpu_drained}) and ICE trace spiked (+15% -> {self.state.trace_percent}%)!"
+                    f"CPU drained (-{cpu_drained}) and ICE trace spiked (+15% -> {self.state.trace_percent}%)! "
+                    f"({self.host_district(curr_node.node_id)['district']} grid lockdown.)"
                 )
                 record_news(
                     world,
@@ -1516,7 +1906,11 @@ class GameEngine:
 
                 dist = calculate_distance(self.nodes, hunter.current_node_id, self.state.current_node_id)
                 if dist == 1:
-                    prox_msg = f"⚠️ [HUNTER PROXIMITY] {hunter.name} detected 1 hop away at {target_name}!"
+                    prox_hood = self.host_district(hunter.current_node_id)
+                    prox_msg = (
+                        f"⚠️ [HUNTER PROXIMITY] {hunter.name} detected 1 hop away at {target_name} "
+                        f"({prox_hood['district']} grid)!"
+                    )
                     messages.append(prox_msg)
                     self.state.message_log.append(prox_msg)
 
@@ -1584,7 +1978,32 @@ class GameEngine:
         else:
             base = -2
         footprint_penalty = min(3, self._intrusion_footprint() // 2)
-        return adjust_alert(self.state.world, base - int(shift_bonus) + footprint_penalty)
+        mira_bonus = 0
+        # Mira's arc (trust 6+): her ledger crew scrubs your name while you run
+        # a Syndicate (mira-giver) contract, cooling the grid one extra point.
+        contract = self.state.active_contract
+        if (contract is not None and getattr(contract, "giver", "") == "mira"
+                and arcs_stage("mira", self._contact_trust("mira")) >= 3):
+            mira_bonus = 1
+        return adjust_alert(self.state.world, base - int(shift_bonus) + footprint_penalty - mira_bonus)
+
+    def _ambient_district(self, event_key: str) -> str:
+        """Street grounding for ambient grid events: fixed beats keep their home
+        district, while brownouts and ICE patrols strike the heaviest-load grid."""
+        fixed = {
+            "street_chatter": "neon_row",
+            "freelance_wire": "dead_archive",
+            "corporate_pr": "ledger_heights",
+            "crackdown": "black_ice_ward",
+        }
+        rows = arcs_districts(self.seed, int(self.state.turns_elapsed),
+                              int(self.state.world.alert_level))
+        by_key = {row["key"]: row for row in rows}
+        if event_key in fixed:
+            return by_key.get(fixed[event_key], {}).get("name", "")
+        if event_key in ("grid_brownout", "ice_patrol") and rows:
+            return max(rows, key=lambda row: row["load"])["name"]
+        return ""
 
     def _apply_ambient_event(self, event: AmbientEvent) -> List[str]:
         """Apply a rolled ambient grid event to the deck, loot, alert, or topology."""
@@ -1603,18 +2022,23 @@ class GameEngine:
         if event.reveal:
             revealed = self._reveal_frontier_node()
             if revealed:
-                effects.append(f"revealed {revealed}")
+                hood = self.host_district(revealed.node_id)
+                effects.append(
+                    f"revealed {revealed.hostname} ({revealed.ip_address}) [{hood['district']}]"
+                )
         if event.trace:
             self.add_trace(event.trace)
             effects.append(f"+{event.trace}% trace")
 
-        record_news(world, self.state.turns_elapsed, event.source, event.headline, tone=event.tone)
+        district = self._ambient_district(event.key)
+        tag = f" [{district}]" if district else ""
+        record_news(world, self.state.turns_elapsed, event.source, event.headline + tag, tone=event.tone)
         suffix = f" ({', '.join(effects)})" if effects else ""
-        message = f"🌐 [GRID EVENT] {event.headline}{suffix}"
+        message = f"🌐 [GRID EVENT] {event.headline}{tag}{suffix}"
         self.state.message_log.append(message)
         return [message]
 
-    def _reveal_frontier_node(self) -> Optional[str]:
+    def _reveal_frontier_node(self) -> Optional["Node"]:
         """Reveal one locked node adjacent to the current host, else any locked node."""
         current = self.get_current_node()
         locked = [self.nodes[nid] for nid in current.connected_ids if self.nodes.get(nid) and self.nodes[nid].status == NodeStatus.LOCKED]
@@ -1624,7 +2048,7 @@ class GameEngine:
             return None
         target = sorted(locked, key=lambda n: n.node_id)[0]
         target.status = NodeStatus.DISCOVERED
-        return f"{target.hostname} ({target.ip_address})"
+        return target
 
     def _recall_daemons(self, node_id: str) -> int:
         """Remove player daemons from a host after the grid re-secures it."""
@@ -1745,12 +2169,14 @@ class GameEngine:
             return False, "Cannot overdrive: terminal session jacked out."
         if self.state.is_victory:
             return False, "Cannot overdrive: mission already complete."
-        if self.deck.cpu_cycles < 2:
-            return False, "Insufficient CPU cycles (need 2 CPU for overdrive)."
+        # Kilo's arc (trust 2+): a spare cooling cell halves the CPU burn.
+        cost = 1 if arcs_stage("kilo", self._contact_trust("kilo")) >= 1 else 2
+        if self.deck.cpu_cycles < cost:
+            return False, f"Insufficient CPU cycles (need {cost} CPU for overdrive)."
         if self.state.trace_percent >= 92:
             return False, "Cannot overdrive: trace is too high to risk another surge."
 
-        self.deck.cpu_cycles -= 2
+        self.deck.cpu_cycles -= cost
         self.state.combo_streak += 1
         self.state.best_combo = max(self.state.best_combo, self.state.combo_streak)
         self.state.unbanked_creds += 10
@@ -1759,6 +2185,8 @@ class GameEngine:
             f"⚡ NEURAL OVERDRIVE! Combo x{self.state.combo_streak} primed "
             f"(+10 Creds, Trace +8% -> {self.state.trace_percent}%)."
         )
+        if cost == 1:
+            msg += " [KILO ARC: discounted burn]"
         self.state.message_log.append(msg)
         return True, msg
 
@@ -1815,12 +2243,17 @@ class GameEngine:
         if not allowed:
             return False, reason
 
+        origin = self.get_current_node()
         self.state.current_node_id = target_id
         self.regenerate_cpu(1)
         self.add_trace(2)
         self.advance_turn()
         node = self.get_current_node()
         msg = f"⚡ Transferred terminal session to '{node.name}'. Recovered 1 CPU cycle."
+        from_hood = self.host_district(origin.node_id)
+        to_hood = self.host_district(node.node_id)
+        if from_hood["district_key"] != to_hood["district_key"]:
+            msg += f" 🌆 Crossing into {to_hood['district']} grid ({to_hood['flavor']})."
         if self.state.is_game_over:
             msg += " The grid burned your deck on arrival."
         self.state.message_log.append(msg)
@@ -1931,6 +2364,10 @@ class GameEngine:
         if contract.deadline_turns:
             contract.expires_turn = self.state.turns_elapsed + contract.deadline_turns
             contract.rush_turn = self.state.turns_elapsed + max(4, contract.deadline_turns // 2)
+            # Mira's arc (trust 2+): her desk holds the rush window one turn longer.
+            if (getattr(contract, "giver", "") == "mira"
+                    and arcs_stage("mira", self._contact_trust("mira")) >= 1):
+                contract.rush_turn += 1
         contract.offer_expires_turn = 0
         contract.failed = False
         return contract
@@ -1960,6 +2397,11 @@ class GameEngine:
         self.state.message_log.append(message)
         return True, message
 
+    def _contract_board_size(self) -> int:
+        """Offer slots: the Archive's arc (trust 2+) opens one extra slot."""
+        bonus = 1 if arcs_stage("archivist", self._contact_trust("archivist")) >= 1 else 0
+        return CONTRACT_BOARD_SIZE + bonus
+
     def _refresh_contract_offers(
         self, exclude_signatures: Optional[Set[Tuple[str, str, str]]] = None
     ) -> List[BountyContract]:
@@ -1979,7 +2421,8 @@ class GameEngine:
 
         added: List[BountyContract] = []
         attempts = 0
-        while len(self.state.contract_offers) < CONTRACT_BOARD_SIZE and attempts < 24:
+        board_size = self._contract_board_size()
+        while len(self.state.contract_offers) < board_size and attempts < 24 + board_size:
             attempts += 1
             offer = self._build_contract()
             if offer is None:
@@ -2183,7 +2626,20 @@ class GameEngine:
         contract.failed = True
         contact = self._find_contact(contract.giver)
         if contact:
-            contact.trust = max(-1, contact.trust - 1)
+            # Mira's arc (trust 4+): the Fixer's Confidant covers walk-aways.
+            if (contact.contact_id == "mira"
+                    and arcs_stage("mira", int(contact.trust)) >= 2):
+                message_cover = (
+                    f"CONTRACT DECLINED: {contract.title}. "
+                    "Mira covers the walk-away: no trust lost; the board is refreshed."
+                )
+                self.state.active_contract = None
+                self.state.contract_decline_until_turn = self.state.turns_elapsed + 1
+                self._refresh_contract_offers()
+                self.state.contract_notice = ""
+                self.state.message_log.append(message_cover)
+                return True, message_cover
+            self._adjust_trust(contact, -1)
         self.state.active_contract = None
         self.state.contract_decline_until_turn = self.state.turns_elapsed + 1
         self._refresh_contract_offers()
@@ -2267,8 +2723,7 @@ class GameEngine:
         self.state.contract_notice = ""
         self.state.unbanked_creds += total
         contact = self._find_contact(contract.giver)
-        if contact:
-            contact.trust += 1
+        arc_line = self._adjust_trust(contact, 1) if contact else None
 
         payout_bits = [f"+{total} Creds"]
         if trust_bonus:
@@ -2276,6 +2731,8 @@ class GameEngine:
         if rush_bonus:
             payout_bits.append(f"RUSH BONUS +{rush_bonus}")
         message = f"🏆 SYNDICATE CONTRACT COMPLETED on {node.hostname}! {', '.join(payout_bits)}."
+        if arc_line:
+            message += f"\n{arc_line}"
         record_news(
             self.state.world,
             self.state.turns_elapsed,
@@ -2297,7 +2754,7 @@ class GameEngine:
         contract.failed = True
         contact = self._find_contact(contract.giver)
         if contact:
-            contact.trust = max(-1, contact.trust - 1)
+            self._adjust_trust(contact, -1)
         adjust_alert(self.state.world, 3)
         message = (
             f"⏳ CONTRACT EXPIRED: {contract.title} missed its turn {contract.expires_turn} "
@@ -2412,6 +2869,10 @@ class GameEngine:
 
         # Loud intrusions raise the living grid's alert level and make the news feed
         adjust_alert(self.state.world, 3 + node.security_level * 2)
+        hood = self.host_district(node.node_id)
+        if hood["patrol"] == "heavy":
+            self.add_trace(1)
+            msg += f"\n🌆 DISTRICT HEAT: {hood['district']} patrols are crawling (+1% trace)."
         record_news(
             self.state.world,
             self.state.turns_elapsed,
@@ -2798,9 +3259,11 @@ class GameEngine:
                 standing, "syndicate", 3 if self.allegiance == "syndicate" else 2
             )
         if outcome in ("victory", "jackout"):
-            standing = update_standing(
-                standing, "street", 2 if self.allegiance == "street" else 1
-            )
+            street_gain = 2 if self.allegiance == "street" else 1
+            # Kilo's arc (trust 6+): a painted handle earns one more standing.
+            if outcome == "victory" and arcs_stage("kilo", self._contact_trust("kilo")) >= 3:
+                street_gain += 1
+            standing = update_standing(standing, "street", street_gain)
         profile.faction_standing = standing
         self.faction_standing = standing
         rank_ups: List[Dict[str, Any]] = []
@@ -2950,6 +3413,13 @@ class GameEngine:
             "security_level": node.security_level,
             "ports": port_data,
         }
+        hood = self.host_district(node.node_id)
+        report.update({
+            "district": hood["district"],
+            "district_patrol": hood["patrol"],
+            "district_load": hood["load"],
+            "district_market_mood": hood["market_mood"],
+        })
 
         port_lines = []
         for p in node.ports:
@@ -2959,6 +3429,7 @@ class GameEngine:
         summary = (
             f"Nmap scan report for {node.hostname} ({node.ip_address})\n"
             f"Host is UP (latency 12ms). Security Tier: {node.security_level} (RAM required: {node.security_level * 16}MB)\n"
+            f"District: {hood['district']} (patrol {hood['patrol']}, market {hood['market_mood']})\n"
             f"PORT     STATE SERVICE     VERSION                     STATUS\n"
             + "\n".join(port_lines)
         )
@@ -3264,8 +3735,10 @@ class GameEngine:
             return False, f"Logs on {node.hostname} are already sanitized."
 
         node.logs_cleared = True
-        trace_drop = min(self.state.trace_percent, 20)
-        self.state.trace_percent = max(0, self.state.trace_percent - 20)
+        # The Archivist's arc (trust 4+): she teaches a deeper scrub, 25% instead of 20%.
+        scrub = 25 if arcs_stage("archivist", self._contact_trust("archivist")) >= 2 else 20
+        trace_drop = min(self.state.trace_percent, scrub)
+        self.state.trace_percent = max(0, self.state.trace_percent - scrub)
         self.scramble_hunter_radar(turns=2)
         self.advance_turn()
         if self.state.is_game_over:
@@ -3335,9 +3808,13 @@ class GameEngine:
                             break
                         continue
 
-            self.state.unbanked_creds += daemon.yield_per_turn
+            # Kilo's arc (trust 4+): ghost-boot tuning lifts daemon yields 10%.
+            daemon_yield = daemon.yield_per_turn
+            if arcs_stage("kilo", self._contact_trust("kilo")) >= 2:
+                daemon_yield += max(1, daemon_yield // 10)
+            self.state.unbanked_creds += daemon_yield
             self.add_trace(daemon.detection_risk)
-            msg = f"📡 [{daemon.daemon_type.upper()}] Harvested +{daemon.yield_per_turn} unbanked Creds from {node.hostname} (Trace +{daemon.detection_risk}%)."
+            msg = f"📡 [{daemon.daemon_type.upper()}] Harvested +{daemon_yield} unbanked Creds from {node.hostname} (Trace +{daemon.detection_risk}%)."
             messages.append(msg)
             self.state.message_log.append(msg)
             if self.state.is_game_over:
@@ -3423,6 +3900,23 @@ class GameEngine:
             return False, f"File '{file_path}' not found on local deck.", None
         return True, f"=== [cat {vfile.path}] ===\n{vfile.content}\n=== [EOF] ===", vfile.content
 
+    def _social_success_chance(self, node: Any, vector_key: str, emp: Any) -> Tuple[float, str]:
+        """Deterministic lure odds shared by execution and forecast (no roll)."""
+        awareness = emp.awareness_level
+        if vector_key == SocialVectorType.SPEAR_PHISH:
+            base_chance = max(0.40, 0.90 - (node.security_level * 0.12))
+        elif vector_key == SocialVectorType.PRETEXT:
+            base_chance = 0.90 if awareness == SecurityAwarenessLevel.NAIVE else (0.75 if awareness == SecurityAwarenessLevel.STANDARD else 0.40)
+        elif vector_key == SocialVectorType.BAIT:
+            base_chance = 0.85 if awareness == SecurityAwarenessLevel.NAIVE else (0.70 if awareness == SecurityAwarenessLevel.STANDARD else 0.45)
+        else:  # VISHING
+            base_chance = 0.90 if awareness == SecurityAwarenessLevel.NAIVE else (0.70 if awareness == SecurityAwarenessLevel.STANDARD else 0.50)
+
+        # The living clock matters: staff availability and alertness follow the shift.
+        current_shift = shift_name(self.state.world.minute)
+        base_chance = apply_social_shift(base_chance, self.state.world.minute)
+        return base_chance, current_shift
+
     def social_engineer(self, target_query: str, vector: str = "spear_phish", employee_name: Optional[str] = None) -> Tuple[bool, str, Dict[str, Any]]:
         """Launch an interactive social engineering attack (pretext, bait, spear_phish, vishing) against target employees."""
         vector_key = str(vector or "").lower().strip()
@@ -3474,20 +3968,8 @@ class GameEngine:
             return False, "Social engineering aborted: the run has already ended.", {}
 
         # Calculate success probability based on vector vs employee security awareness
-        awareness = emp.awareness_level
-        if vector_key == SocialVectorType.SPEAR_PHISH:
-            base_chance = max(0.40, 0.90 - (node.security_level * 0.12))
-        elif vector_key == SocialVectorType.PRETEXT:
-            base_chance = 0.90 if awareness == SecurityAwarenessLevel.NAIVE else (0.75 if awareness == SecurityAwarenessLevel.STANDARD else 0.40)
-        elif vector_key == SocialVectorType.BAIT:
-            base_chance = 0.85 if awareness == SecurityAwarenessLevel.NAIVE else (0.70 if awareness == SecurityAwarenessLevel.STANDARD else 0.45)
-        else:  # VISHING
-            base_chance = 0.90 if awareness == SecurityAwarenessLevel.NAIVE else (0.70 if awareness == SecurityAwarenessLevel.STANDARD else 0.50)
-
-        # The living clock matters: staff availability and alertness follow the shift.
-        current_shift = shift_name(self.state.world.minute)
+        base_chance, current_shift = self._social_success_chance(node, vector_key, emp)
         shift_modifier = social_shift_modifier(self.state.world.minute)
-        base_chance = apply_social_shift(base_chance, self.state.world.minute)
 
         roll = self.rng.random()
         success = roll <= base_chance
@@ -3550,7 +4032,7 @@ class GameEngine:
             msg += f"   * Harvested auth token saved to local rig at {cred_file}."
             for line in self._progress_quests("social_vector", vector_key):
                 msg += f"\n{line}"
-            self.state.message_log.append(f"Social engineering [{vector_key}] success on {node.hostname}.")
+            self.state.message_log.append(f"Social engineering [{vector_key}] success on {node.hostname} ({self.host_district(node.node_id)['district']} grid).")
             return True, msg, report
         else:
             self.add_trace(8)
@@ -3558,7 +4040,7 @@ class GameEngine:
             if node.antivirus:
                 node.antivirus.alert_level = min(100, node.antivirus.alert_level + 20)
             tag = "🎣 PHISHING FAILED" if vector_key == SocialVectorType.SPEAR_PHISH else f"🎭 SOCIAL ENGINEERING FAILED [{vector_key.upper()}]"
-            msg = f"{tag}: {emp.name} on {node.hostname} flagged lure. IDS alert triggered (Trace +8%)!\n{shift_note}"
+            msg = f"{tag}: {emp.name} on {node.hostname} flagged lure. IDS alert triggered (Trace +8%)! [{self.host_district(node.node_id)['district']} grid]\n{shift_note}"
             self.state.message_log.append(msg)
             return False, msg, report
 
@@ -3816,7 +4298,8 @@ class GameEngine:
             f"🛰️ INTEL REVEAL ({cost} fragment): {node.hostname} ({node.ip_address}) — "
             f"services [{', '.join(open_ports) or 'none'}] | "
             f"vulnerable [{', '.join(vuln_ports) or 'none'}] | "
-            f"blocked ports [{', '.join(blocked) or 'none'}] | EDR [{edr}]"
+            f"blocked ports [{', '.join(blocked) or 'none'}] | EDR [{edr}] // "
+            f"{self.host_district(node.node_id)['district']} grid"
         )
         self.state.message_log.append(msg)
         return True, msg

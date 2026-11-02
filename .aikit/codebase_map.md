@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `44`
-- **Total Classes**: `77`
-- **Total Top-Level Functions**: `102`
-- **Total Class Methods**: `727`
-- **Total Source Lines**: `16650`
+- **Total Python Modules**: `48`
+- **Total Classes**: `82`
+- **Total Top-Level Functions**: `122`
+- **Total Class Methods**: `813`
+- **Total Source Lines**: `18550`
 
 ---
 
@@ -39,12 +39,33 @@
 
 ---
 
+### [`cyberpulse/arcs.py`](cyberpulse/arcs.py)
+> *Operative loyalty arcs + district grid simulation (additive, save-compatible).*
+
+**Size**: `254` lines (`10672` bytes)
+
+**Functions:**
+- `def arc_stage(contact_id, trust)` - *Return how many arc stages (0-3) a trust value unlocks.*
+- `def stage_info(contact_id, stage)` - *Return the label/text/bonus of an arc stage (stage 1-3).*
+- `def arc_status(contacts)` - *Summarize every operative's arc for CLI/Web/dossier consumers.*
+- `def _district_seed(seed, tick, key)` - *Deterministic district roll (hashlib, not hash(): stable across processes).*
+- `def district_for_node(seed, node_id)` - *Tick-independent street mapping: every host lives in one district.*
+- `def district_grid(seed, tick, alert)` - *Deterministic per-tick district simulation: load, patrol, market mood.*
+- `def arc_epilogue_lines(contacts)` - *Epilogue stanzas for operatives whose loyalty arc reached stage 3.*
+- `def live_bonuses(engine)` - *Which arc mechanical bonuses are currently active for this run.*
+- `def ensure_arc_quests(engine)` - *Backfill arc side-quests into old runs; returns number added.*
+
+---
+
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1506` lines (`69685` bytes)
+**Size**: `1619` lines (`75860` bytes)
 
 **Functions:**
+- `def print_deckos(engine)`
+- `def print_arcs(engine)`
+- `def print_districts(engine)`
 - `def setup_terminal_encoding()` - *Ensure stdout and stderr handle utf-8 safely across all Windows code pages.*
 - `def safe_print(msg)` - *Print message to stdout with graceful fallback for legacy terminal code pages.*
 - `def get_default_data_dir()`
@@ -95,6 +116,21 @@
 
 ---
 
+### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
+> *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
+
+**Size**: `144` lines (`6192` bytes)
+
+**Functions:**
+- `def _rogue_present(seed, turn, alert)` - *A rogue miner squats on the deck when the grid is hot (deterministic).*
+- `def list_processes(engine)` - *Build the DeckOS process table from live engine state.*
+- `def sysinfo(engine)` - *Snapshot of the deck as a computer: specs, load, uptime, threat.*
+- `def kill_process(engine, pid)` - *Terminate a killable DeckOS process. Rogue miners free CPU; daemons are recalled.*
+- `def record_history(engine, cmd_line)` - *Append a command to the run-scoped history (bounded, backfilled).*
+- `def recent_history(engine, limit)`
+
+---
+
 ### [`cyberpulse/difficulty.py`](cyberpulse/difficulty.py)
 > *Difficulty normalization and run modifiers.*
 
@@ -110,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `3972` lines (`185877` bytes)
+**Size**: `4455` lines (`213259` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -121,6 +157,8 @@
   - Method `._find_contact(contact_id)`
   - Method `._log_story(message)`
   - Method `._sync_story_quests()` - *Auto-accept unlocked main-story quests so the campaign cannot stall.*
+  - Method `._contact_trust(contact_id)` - *Trust level for an operative (0 when the contact is missing).*
+  - Method `._adjust_trust(contact, delta)` - *Shift an operative's trust, announcing loyalty-arc stage crossings.*
   - Method `._quest_progress_from_state(quest)` - *Progress the world already holds for a one-shot objective.*
   - Method `._reconcile_quest_progress(quest)` - *Credit one-shot events that happened before the quest was accepted.*
   - Method `._complete_quest(quest)` - *Mark a quest complete once, grant its reward, and advance the main story.*
@@ -134,6 +172,12 @@
   - Method `.ensure_story_state()` - *Backfill story content when loading a save created before story support.*
   - Method `.story_summary()`
   - Method `.world_summary()` - *Return the living-grid snapshot with the newest headlines and hunter telemetry.*
+  - Method `.deckos_summary()` - *In-game computer snapshot: sysinfo + process table (Web/CLI DeckOS panel).*
+  - Method `.arcs_summary()` - *Operative loyalty-arc tracker for CLI/Web/dossier consumers.*
+  - Method `.district_summary()` - *Street-level district simulation rows for the living-grid ticker.*
+  - Method `.host_district(node_id)` - *Street-layer address of a host: its district plus live patrol/load/mood.*
+  - Method `.offer_district(target_ip, target_node_type)` - *Street address of a contract target for board display.*
+  - Method `.node_districts()` - *Compact per-host district tags for Web/CLI consumers.*
   - Method `.news_feed(limit)` - *Return the newest living-grid headlines, oldest first.*
   - Method `.run_summary()` - *Return the terminal (or in-progress) run's legacy for CLI and Web display.*
   - Method `.list_quests()`
@@ -166,6 +210,7 @@
   - Method `._intrusion_footprint()` - *Count currently-breached hosts the corporation still has to clean up.*
   - Method `._announce_alert_tier()` - *Report a corporate posture change to the wire and the run log.*
   - Method `._decay_alert(shift_bonus)` - *Cool the grid while trace is low; a hot trace keeps corporate response elevated.*
+  - Method `._ambient_district(event_key)` - *Street grounding for ambient grid events: fixed beats keep their home*
   - Method `._apply_ambient_event(event)` - *Apply a rolled ambient grid event to the deck, loot, alert, or topology.*
   - Method `._reveal_frontier_node()` - *Reveal one locked node adjacent to the current host, else any locked node.*
   - Method `._recall_daemons(node_id)` - *Remove player daemons from a host after the grid re-secures it.*
@@ -186,6 +231,7 @@
   - Method `._activate_contract(contract)` - *Start an accepted job's clock and clear its board shelf life.*
   - Method `._offer_signature(contract)`
   - Method `.reroll_contract_offers(cost)` - *Spend credits to replace the posted board with fresh offers.*
+  - Method `._contract_board_size()` - *Offer slots: the Archive's arc (trust 2+) opens one extra slot.*
   - Method `._refresh_contract_offers(exclude_signatures)` - *Expire stale board entries and fill the board with distinct concrete jobs.*
   - Method `._build_contract()` - *Generate a concrete, deadline-bound job from the live grid state.*
   - Method `.dispatch_next_contract()` - *Dispatch and immediately accept a concrete job (legacy/test helper).*
@@ -216,6 +262,7 @@
   - Method `.deploy_daemon(target_query, daemon_type)` - *Deploy an in-game background malware listener daemon onto a breached host.*
   - Method `.list_local_files()` - *List files (ls) stored on player's local cyberdeck rig (localhost).*
   - Method `.read_local_file(file_path)` - *Read content (cat) of a file on player's local cyberdeck rig.*
+  - Method `._social_success_chance(node, vector_key, emp)` - *Deterministic lure odds shared by execution and forecast (no roll).*
   - Method `.social_engineer(target_query, vector, employee_name)` - *Launch an interactive social engineering attack (pretext, bait, spear_phish, vishing) against target employees.*
   - Method `.phish_target(target_query)` - *Dispatch a simulated social engineering spear-phishing campaign to target host employees (backward compatible).*
   - Method `.get_firewall_status(target_query)` - *Inspect the network firewall rules defending a target host.*
@@ -254,7 +301,7 @@
 ### [`cyberpulse/models.py`](cyberpulse/models.py)
 > *Domain models for CyberPulse cyberspace nodes, decks, contracts, and career profiles.*
 
-**Size**: `842` lines (`32026` bytes)
+**Size**: `843` lines (`32083` bytes)
 
 **Classes:**
 - `class NodeType`
@@ -394,10 +441,11 @@
 ### [`cyberpulse/rivals.py`](cyberpulse/rivals.py)
 > *Deterministic rival-netrunner generation.*
 
-**Size**: `40` lines (`1000` bytes)
+**Size**: `55` lines (`1619` bytes)
 
 **Functions:**
 - `def generate_rival(seed)` - *Create the run's rival from a deterministic seed stream.*
+- `def rival_move_delay(skill, story_act, jitter)` - *Deterministic rival board delay: skill base, act pressure, RNG jitter.*
 
 ---
 
@@ -414,7 +462,7 @@
 ### [`cyberpulse/server.py`](cyberpulse/server.py)
 > *Zero-dependency HTTP REST backend and static file server for CyberPulse Web Cyberdeck.*
 
-**Size**: `989` lines (`44092` bytes)
+**Size**: `1045` lines (`46858` bytes)
 
 **Classes:**
 - `class CyberdeckSession` - *Encapsulates the stateful game session driving the Web Cyberdeck interface.*
@@ -503,7 +551,7 @@
 ### [`cyberpulse/story.py`](cyberpulse/story.py)
 > *Story acts, quest blueprints, and operative dialogue for CyberPulse.*
 
-**Size**: `282` lines (`11542` bytes)
+**Size**: `310` lines (`12460` bytes)
 
 **Functions:**
 - `def initial_quests()` - *Return the persistent quest board for a new run.*
@@ -603,6 +651,61 @@
 
 ---
 
+### [`tests/test_arc_mechanics.py`](tests/test_arc_mechanics.py)
+> *Live arc bonuses + district sweep mechanics (Cyberpulse 0.5.0).*
+
+**Size**: `461` lines (`21307` bytes)
+
+**Classes:**
+- `class ArcMechanicsTest`
+  - Method `.setUp()`
+  - Method `.test_zero_arc_discounts_counter_rival()`
+  - Method `.test_zero_arc_counter_needs_only_one_cpu()`
+  - Method `.test_kilo_arc_boosts_daemon_yield()`
+  - Method `.test_archivist_arc_deepens_wipe()`
+  - Method `.test_mira_arc_cools_grid_on_syndicate_contract()`
+  - Method `.test_mira_arc_needs_syndicate_contract()`
+  - Method `.test_district_sweep_adds_trace_under_black_alert()`
+  - Method `.test_district_grid_matches_hashlib_reference()`
+  - Method `.test_live_bonuses_reflect_trust_and_contract()`
+  - Method `.test_arc_epilogues_fire_only_at_stage_three()`
+  - Method `.test_run_summary_carries_arc_epilogues()`
+  - Method `.test_adjust_trust_announces_stage_crossings()`
+  - Method `.test_adjust_trust_silent_without_crossing()`
+  - Method `.test_adjust_trust_floors_at_minus_one()`
+  - Method `.test_accept_quest_carries_arc_unlock()`
+  - Method `.test_archivist_arc_opens_extra_offer_slot()`
+  - Method `.test_arc_status_carries_bonus_text()`
+  - Method `.test_talk_names_the_loyalty_arc()`
+  - Method `.test_kilo_arc_discounts_overdrive()`
+  - Method `.test_overdrive_forecast_reflects_kilo_arc()`
+  - Method `.test_contact_channels_carry_arc_stage()`
+  - Method `.test_mira_arc_extends_rush_window()`
+  - Method `.test_mira_arc_covers_declines()`
+  - Method `.test_kilo_arc_adds_street_standing_on_victory()`
+  - Method `.test_zero_arc_forecasts_black_ice()`
+  - Method `.test_zero_arc_extends_choice_epilogue()`
+  - Method `.test_district_for_node_is_stable()`
+  - Method `.test_district_summary_partitions_all_hosts()`
+  - Method `.test_breach_in_heavy_district_adds_heat()`
+  - Method `.test_breach_outside_heavy_districts_adds_no_heat()`
+  - Method `.test_probe_report_carries_district()`
+  - Method `.test_hunter_deployment_names_its_district()`
+  - Method `.test_hunter_clash_names_the_grid()`
+  - Method `.test_deckos_probe_names_hunter_district()`
+  - Method `.test_offer_district_maps_targets_to_streets()`
+  - Method `.test_resecure_names_the_district_grid()`
+  - Method `.test_intel_reveal_names_the_district()`
+  - Method `.test_run_summary_tracks_district_coverage()`
+  - Method `.test_ambient_events_name_their_district()`
+  - Method `.test_reveal_effect_names_the_district()`
+  - Method `.test_move_across_districts_announces_the_crossing()`
+
+**Functions:**
+- `def _quiet(engine)` - *Neutralize ambient/rival randomness for deterministic tick assertions.*
+
+---
+
 ### [`tests/test_cli.py`](tests/test_cli.py)
 > *Integration tests for CyberPulse CLI.*
 
@@ -685,6 +788,32 @@
 
 ---
 
+### [`tests/test_deckos_arcs.py`](tests/test_deckos_arcs.py)
+> *DeckOS computer simulation + operative arcs + district sim (Cyberpulse 0.5.0).*
+
+**Size**: `108` lines (`4091` bytes)
+
+**Classes:**
+- `class DeckOSTest`
+  - Method `.setUp()`
+  - Method `.test_process_table_has_base_system_procs()`
+  - Method `.test_sysinfo_reports_uptime_and_specs()`
+  - Method `.test_kill_unknown_pid_fails()`
+  - Method `.test_kill_protected_proc_fails()`
+  - Method `.test_history_roundtrip()`
+  - Method `.test_engine_summaries_present()`
+- `class ArcsTest`
+  - Method `.setUp()`
+  - Method `.test_arc_stages_start_at_zero()`
+  - Method `.test_arc_stage_thresholds()`
+  - Method `.test_arc_quests_backfilled_for_new_runs()`
+  - Method `.test_arc_quests_backfilled_for_old_saves()`
+  - Method `.test_district_grid_deterministic()`
+- `class CLIParityTest`
+  - Method `.test_deckos_arcs_districts_forecast_commands()`
+
+---
+
 ### [`tests/test_difficulty.py`](tests/test_difficulty.py)
 > *Unit tests for difficulty normalization and modifiers.*
 
@@ -701,7 +830,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for CyberPulse game engine.*
 
-**Size**: `2165` lines (`91400` bytes)
+**Size**: `2168` lines (`91557` bytes)
 
 **Classes:**
 - `class TestEngine`
@@ -878,7 +1007,7 @@
 ### [`tests/test_forecast.py`](tests/test_forecast.py)
 > *Failing-first tests for read-only action forecasts (no balance numbers change).*
 
-**Size**: `107` lines (`4253` bytes)
+**Size**: `266` lines (`11644` bytes)
 
 **Classes:**
 - `class TestActionForecast`
@@ -886,7 +1015,18 @@
   - Method `.test_overdrive_forecast_and_block_at_high_trace()`
   - Method `.test_spoof_forecast_reduces_trace()`
   - Method `.test_quickhack_forecast_per_security_tier()`
+  - Method `.test_quickhack_forecast_includes_district_heat()`
+  - Method `.test_counter_forecast_reflects_zero_arc_discount()`
+  - Method `.test_wipe_forecast_reflects_archivist_arc()`
   - Method `.test_unknown_action_is_rejected()`
+  - Method `.test_move_forecast_names_district_crossing()`
+  - Method `.test_deploy_forecast_shows_passive_yield()`
+  - Method `.test_intel_forecasts_gate_on_fragments()`
+  - Method `.test_proxy_forecast_shows_dampening()`
+  - Method `.test_hunter_forecast_lists_ready_countermeasures()`
+  - Method `.test_social_forecast_shows_lure_odds()`
+  - Method `.test_bypass_forecast_lists_blocked_ports()`
+  - Method `.test_evade_forecast_blocks_without_active_av()`
   - Method `.test_combo_rate_preview_caps_at_fifty_percent()`
   - Method `.test_jackout_forecast_matches_extraction_risk()`
   - Method `.test_cli_blocked_forecast_has_no_double_period()`
@@ -1018,12 +1158,19 @@
 ### [`tests/test_rivals.py`](tests/test_rivals.py)
 > *Unit tests for deterministic rival generation.*
 
-**Size**: `30` lines (`942` bytes)
+**Size**: `78` lines (`2701` bytes)
 
 **Classes:**
 - `class TestRivalGeneration`
   - Method `.test_rival_is_deterministic_for_a_seed()`
   - Method `.test_rival_fields_are_within_design_bounds()`
+- `class TestRivalActEscalation`
+  - Method `.test_pressure_table_covers_all_acts()`
+  - Method `.test_delay_shrinks_as_acts_progress()`
+  - Method `.test_delay_respects_floor()`
+  - Method `.test_unknown_act_falls_back_to_baseline()`
+  - Method `.test_tick_uses_act_pressure()`
+  - Method `.test_counter_rival_still_delays_five()`
 
 ---
 
@@ -1043,7 +1190,7 @@
 ### [`tests/test_server.py`](tests/test_server.py)
 > *Unit and integration tests for CyberPulse HTTP REST server.*
 
-**Size**: `1141` lines (`49975` bytes)
+**Size**: `1165` lines (`51172` bytes)
 
 **Classes:**
 - `class TestCyberdeckServer`
@@ -1129,6 +1276,8 @@
   - Method `.test_daily_reset_over_http()`
   - Method `.test_name_rename_and_delete_over_http()`
   - Method `.test_named_slot_round_trip_and_autosave_payload()`
+  - Method `.test_web_actions_mirror_into_deckos_history()`
+  - Method `.test_state_nodes_carry_district_tags()`
 
 ---
 
@@ -1173,7 +1322,7 @@
 ### [`tests/test_storage.py`](tests/test_storage.py)
 > *Unit tests for CyberPulse savegame and career profile persistence.*
 
-**Size**: `632` lines (`24515` bytes)
+**Size**: `635` lines (`24667` bytes)
 
 **Classes:**
 - `class TestStorage`

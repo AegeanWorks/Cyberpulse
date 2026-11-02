@@ -15,3 +15,5 @@ node_modules/
 
 # Reforge review packets are regenerable audit artifacts
 .aikit/reforge.reviews/
+# AIKit transient state
+.aikit/*.log
