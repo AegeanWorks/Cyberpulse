@@ -4,6 +4,7 @@ import unittest
 
 from cyberpulse.rivals import (
     RIVAL_ACT_PRESSURE,
+    RIVAL_ROSTER,
     generate_rival,
     rival_move_delay,
 )
@@ -72,6 +73,20 @@ class TestRivalActEscalation(unittest.TestCase):
         ok, _ = eng.counter_rival()
         self.assertTrue(ok)
         self.assertEqual(eng.state.rival.next_move_turn, before + 5)
+
+
+class TestRivalRosterContent(unittest.TestCase):
+    def test_roster_has_four_rows_with_unique_handles(self):
+        self.assertEqual(len(RIVAL_ROSTER), 4)
+        handles = [row[1] for row in RIVAL_ROSTER]
+        self.assertEqual(len(handles), len(set(handles)))
+        for name, handle, skill, tagline in RIVAL_ROSTER:
+            self.assertTrue(name and handle and tagline)
+            self.assertIn(skill, (1, 2, 3))
+
+    def test_new_row_is_reachable_by_seed(self):
+        seen = {generate_rival(seed).handle for seed in range(40)}
+        self.assertIn("nulljack", seen)
 
 
 if __name__ == "__main__":

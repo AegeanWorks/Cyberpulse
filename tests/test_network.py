@@ -1,8 +1,9 @@
 """Unit tests for procedural network generation."""
 
 import unittest
+from cyberpulse.engine import KNOWN_CVES
 from cyberpulse.models import NodeStatus, NodeType
-from cyberpulse.network import SIDE_HOST_ANCHORS, generate_network
+from cyberpulse.network import SIDE_HOST_ANCHORS, SIDE_HOST_TEMPLATES, generate_network
 
 
 class TestNetwork(unittest.TestCase):
@@ -115,6 +116,40 @@ class TestProceduralSideHosts(unittest.TestCase):
                 for vfile in nodes["node_vault_1"].filesystem
             )
         )
+
+
+class TestSideHostTable(unittest.TestCase):
+    def test_every_template_row_is_schema_valid(self):
+        self.assertGreaterEqual(len(SIDE_HOST_TEMPLATES), 9)
+        for template in SIDE_HOST_TEMPLATES:
+            for key in ("name", "hostname", "payload", "file_path", "file_size_kb",
+                        "content", "port", "service", "version", "exploit_tool",
+                        "employee", "antivirus"):
+                self.assertIn(key, template, f"missing {key}")
+            self.assertEqual(len(template["employee"]), 4)
+            av = template["antivirus"]
+            self.assertTrue(av is None or len(av) == 4)
+
+    def test_template_ports_hostnames_and_files_are_unique(self):
+        for field in ("port", "hostname", "file_path"):
+            values = [t[field] for t in SIDE_HOST_TEMPLATES]
+            self.assertEqual(len(values), len(set(values)), f"duplicate {field}")
+
+    def test_every_template_service_has_a_dedicated_or_universal_cve(self):
+        targets = {cve.target_service for cve in KNOWN_CVES.values()}
+        for template in SIDE_HOST_TEMPLATES:
+            self.assertIn(template["service"], targets)
+
+    def test_new_rows_appear_in_seeded_grids(self):
+        seen = set()
+        for seed in range(60):
+            nodes = generate_network(seed=seed)
+            for nid, node in nodes.items():
+                if nid.startswith("node_side_"):
+                    seen.add(node.hostname)
+        for hostname in ("replica.sprawl.internal", "print.sprawl.internal",
+                         "admin.skyline.internal"):
+            self.assertIn(hostname, seen)
 
 
 if __name__ == "__main__":

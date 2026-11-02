@@ -186,6 +186,26 @@ KNOWN_CVES: Dict[str, ExploitPayload] = {
         damage_trace=5,
         description="Universal quantum zero-day payload overriding neural subroutines and central cores.",
     ),
+    "cve-2020-0796": ExploitPayload(
+        cve_id="CVE-2020-0796",
+        name="SMGhost SMBv3 RCE",
+        target_service="smb",
+        required_ram_mb=32,
+        cpu_cost=2,
+        stealth_rating=3,
+        damage_trace=11,
+        description="SMBv3 compression parsing flaw granting remote code execution on file shares.",
+    ),
+    "cve-2023-39417": ExploitPayload(
+        cve_id="CVE-2023-39417",
+        name="Postgres SQL Gateway Escape",
+        target_service="postgres",
+        required_ram_mb=32,
+        cpu_cost=2,
+        stealth_rating=4,
+        damage_trace=8,
+        description="Extension script privilege escape yielding superuser SQL execution.",
+    ),
 }
 
 CRAFTING_RECIPES: Dict[str, VirusCraftRecipe] = {

@@ -642,3 +642,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   3. Give hosts deterministic fingerprints (os_name, uptime_hours, patch_level) and staff work_shift values with host_fingerprint() reporting on-shift counts; add 	raceroute CLI and a ROUTE row on the web target card.
   4. Cover the new contracts with 	ests/test_visuals.py, 	ests/test_forecast.py, 	ests/test_sim_life.py, and /api/forecast + /api/route server tests.
 - **Consequences**: Tactics become informed (exact mitigated costs, routes, host identity) while all tuned numbers stay identical; old saves load via dataclass defaults. Test suite: 473 tests, 100% green.
+
+### ADR-051: Content Growth via Data Tables With Accepted Seed-Mapping Shift
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: The grid needed more content (hosts, payloads, rivals) without new generation code. All three content pools are plain data tables sampled by seed, so appending rows shifts per-seed outcomes.
+- **Decision**: Add 3 SIDE_HOST_TEMPLATES rows (postgres:5433, smb:139, https:8443, existing services only), 2 KNOWN_CVES rows (postgres, smb, inside existing stat bands), and 1 RIVAL_ROSTER row (Nulljack, skill 2, appended). No generator, UI, or numbers logic changes; reachability is asserted at table level by tests.
+- **Consequences**: Deterministic per code version, but run replays and dailies differ across this patch: rng.sample over 9 templates and rng.choice over 4 rivals remap seeds. Old saves load unchanged (additive rows only).

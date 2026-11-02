@@ -805,7 +805,7 @@ class TestEngine(unittest.TestCase):
 
     def test_cve_catalog_and_exploit_execution(self):
         cves = self.engine.list_cves()
-        self.assertEqual(len(cves), 8)
+        self.assertEqual(len(cves), 10)
         cve_ids = [c["cve_id"] for c in cves]
         self.assertIn("CVE-2011-2523", cve_ids)
         self.assertIn("CVE-2022-0778", cve_ids)
@@ -823,6 +823,25 @@ class TestEngine(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn("CVE-2025-9901", msg)
         self.assertIn("EXPLOIT SUCCESSFUL", msg)
+
+    def test_new_cve_rows_cover_live_side_services(self):
+        from cyberpulse.engine import KNOWN_CVES
+
+        for cve_id in ("cve-2020-0796", "cve-2023-39417"):
+            self.assertIn(cve_id, KNOWN_CVES)
+            cve = KNOWN_CVES[cve_id]
+            self.assertIn(cve.target_service, ("smb", "postgres"))
+            self.assertTrue(16 <= cve.required_ram_mb <= 64)
+            self.assertTrue(1 <= cve.cpu_cost <= 3)
+            self.assertTrue(2 <= cve.stealth_rating <= 5)
+            self.assertTrue(5 <= cve.damage_trace <= 14)
+
+        # Every side-template service resolves to a named or universal payload.
+        from cyberpulse.network import SIDE_HOST_TEMPLATES
+
+        targets = {c.target_service for c in KNOWN_CVES.values()}
+        for template in SIDE_HOST_TEMPLATES:
+            self.assertIn(template["service"], targets)
 
     def test_social_engineering_vectors(self):
         self.engine.deck.cpu_cycles = 5
@@ -1806,9 +1825,12 @@ class TestEngine(unittest.TestCase):
         self.engine.state.contacts = []
         self.engine.state.story_log = []
         self.engine.ensure_story_state()
-        self.assertEqual(len(self.engine.state.quests), 7)
+        self.assertEqual(len(self.engine.state.quests), 9)
         self.assertEqual(len(self.engine.state.contacts), 4)
         self.assertTrue(self.engine.state.story_log)
+        ids = {q.quest_id for q in self.engine.state.quests}
+        self.assertIn("q_arc_cold_wallet", ids)
+        self.assertIn("q_arc_dead_letter", ids)
 
     def test_out_of_order_ice_breach_still_completes_black_ice_quest(self):
         self.engine.complete_breach("node_proxy_a")

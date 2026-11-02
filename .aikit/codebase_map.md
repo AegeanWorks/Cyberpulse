@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `48`
-- **Total Classes**: `82`
+- **Total Classes**: `84`
 - **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `813`
-- **Total Source Lines**: `18550`
+- **Total Class Methods**: `820`
+- **Total Source Lines**: `18687`
 
 ---
 
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4455` lines (`213259` bytes)
+**Size**: `4475` lines (`213945` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -386,7 +386,7 @@
 ### [`cyberpulse/network.py`](cyberpulse/network.py)
 > *Procedural cyberspace network generator with deterministic topology.*
 
-**Size**: `436` lines (`20582` bytes)
+**Size**: `478` lines (`22352` bytes)
 
 **Functions:**
 - `def host_fingerprint_fields(rng, node_type, security)` - *Derive deterministic host identity: OS, uptime, and patch train.*
@@ -441,7 +441,7 @@
 ### [`cyberpulse/rivals.py`](cyberpulse/rivals.py)
 > *Deterministic rival-netrunner generation.*
 
-**Size**: `55` lines (`1619` bytes)
+**Size**: `61` lines (`1763` bytes)
 
 **Functions:**
 - `def generate_rival(seed)` - *Create the run's rival from a deterministic seed stream.*
@@ -830,7 +830,7 @@
 ### [`tests/test_engine.py`](tests/test_engine.py)
 > *Unit tests for CyberPulse game engine.*
 
-**Size**: `2168` lines (`91557` bytes)
+**Size**: `2187` lines (`92412` bytes)
 
 **Classes:**
 - `class TestEngine`
@@ -887,6 +887,7 @@
   - Method `.test_firewall_inspection_and_bypass()`
   - Method `.test_antivirus_status_and_evasion()`
   - Method `.test_cve_catalog_and_exploit_execution()`
+  - Method `.test_new_cve_rows_cover_live_side_services()`
   - Method `.test_social_engineering_vectors()`
   - Method `.test_social_chance_follows_the_shift()`
   - Method `.test_game_over_and_jacked_out_guards()`
@@ -1107,7 +1108,7 @@
 ### [`tests/test_network.py`](tests/test_network.py)
 > *Unit tests for procedural network generation.*
 
-**Size**: `121` lines (`4798` bytes)
+**Size**: `156` lines (`6474` bytes)
 
 **Classes:**
 - `class TestNetwork`
@@ -1121,6 +1122,11 @@
   - Method `.test_different_seeds_change_the_side_subnet()`
   - Method `.test_side_hosts_are_wired_into_the_spine()`
   - Method `.test_campaign_spine_stays_fixed()`
+- `class TestSideHostTable`
+  - Method `.test_every_template_row_is_schema_valid()`
+  - Method `.test_template_ports_hostnames_and_files_are_unique()`
+  - Method `.test_every_template_service_has_a_dedicated_or_universal_cve()`
+  - Method `.test_new_rows_appear_in_seeded_grids()`
 
 ---
 
@@ -1158,7 +1164,7 @@
 ### [`tests/test_rivals.py`](tests/test_rivals.py)
 > *Unit tests for deterministic rival generation.*
 
-**Size**: `78` lines (`2701` bytes)
+**Size**: `93` lines (`3303` bytes)
 
 **Classes:**
 - `class TestRivalGeneration`
@@ -1171,6 +1177,9 @@
   - Method `.test_unknown_act_falls_back_to_baseline()`
   - Method `.test_tick_uses_act_pressure()`
   - Method `.test_counter_rival_still_delays_five()`
+- `class TestRivalRosterContent`
+  - Method `.test_roster_has_four_rows_with_unique_handles()`
+  - Method `.test_new_row_is_reachable_by_seed()`
 
 ---
 

@@ -24,6 +24,12 @@ RIVAL_ROSTER: Tuple[Tuple[str, str, int, str], ...] = (
         1,
         "A loud street runner whose botnet makes up for what finesse lacks.",
     ),
+    (
+        "Nulljack",
+        "nulljack",
+        2,
+        "A quiet ledger-forger who steals board payouts before the ink dries.",
+    ),
 )
 
 
