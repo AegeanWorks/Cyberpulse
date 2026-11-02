@@ -3032,6 +3032,8 @@ body {
 .av-alert-med { color: var(--c-warning) !important; }
 .fw-bypassed, .av-evaded { color: var(--c-primary) !important; }
 .fw-allowed { color: var(--c-text-main) !important; }
+/* Long spec values (OS builds, EDR suites, district names) wrap instead of clipping. */
+#target-os, #target-antivirus, #target-district { white-space: normal; }
 
 .target-actions { display: flex; flex-direction: column; gap: 4px; }
 .action-row { display: flex; gap: 4px; flex-wrap: wrap; }

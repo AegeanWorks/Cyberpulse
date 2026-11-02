@@ -1953,11 +1953,11 @@ async function loadFilesystemView(nodeId) {
 }
 
 const NODE_SPRITES = {
-  GATEWAY: { shape: "diamond", glow: "185, 100%, 55%", core: "hsl(185, 100%, 62%)" },
-  FIREWALL: { shape: "hexagon", glow: "42, 100%, 60%", core: "hsl(42, 100%, 62%)" },
-  DATA_VAULT: { shape: "vault", glow: "145, 95%, 58%", core: "hsl(145, 95%, 60%)" },
-  ICE_DEFENSE: { shape: "triangle", glow: "352, 100%, 64%", core: "hsl(352, 100%, 64%)" },
-  CENTRAL_CORE: { shape: "core", glow: "315, 100%, 68%", core: "hsl(315, 100%, 70%)" },
+  GATEWAY: { shape: "diamond", glow: "185, 100%, 55%", core: "hsl(185, 100%, 62%)", glyph: "◆" },
+  FIREWALL: { shape: "hexagon", glow: "42, 100%, 60%", core: "hsl(42, 100%, 62%)", glyph: "⬡" },
+  DATA_VAULT: { shape: "vault", glow: "145, 95%, 58%", core: "hsl(145, 95%, 60%)", glyph: "▤" },
+  ICE_DEFENSE: { shape: "triangle", glow: "352, 100%, 64%", core: "hsl(352, 100%, 64%)", glyph: "▲" },
+  CENTRAL_CORE: { shape: "core", glow: "315, 100%, 68%", core: "hsl(315, 100%, 70%)", glyph: "⬢" },
 };
 
 const ENTITY_SPRITES = {
@@ -2065,8 +2065,21 @@ function drawMatrix(ctx, time) {
     }
   }
   if (!state.data) return;
-  // Deep-space backdrop: faint grid + drifting stars + horizontal scan sweep
+  // Deep-space backdrop: nebula wash + faint grid + drifting stars + scan sweep
   ctx.save();
+  {
+    const nx = view.offX, ny = view.offY, nw = DESIGN_W * view.scale, nh = DESIGN_H * view.scale;
+    let neb = ctx.createRadialGradient(nx + nw * 0.22, ny + nh * 0.28, 10, nx + nw * 0.22, ny + nh * 0.28, Math.max(nw, nh) * 0.45);
+    neb.addColorStop(0, 'rgba(40,140,190,0.07)');
+    neb.addColorStop(1, 'rgba(40,140,190,0)');
+    ctx.fillStyle = neb;
+    ctx.fillRect(nx, ny, nw, nh);
+    neb = ctx.createRadialGradient(nx + nw * 0.82, ny + nh * 0.8, 10, nx + nw * 0.82, ny + nh * 0.8, Math.max(nw, nh) * 0.4);
+    neb.addColorStop(0, 'rgba(190,60,140,0.05)');
+    neb.addColorStop(1, 'rgba(190,60,140,0)');
+    ctx.fillStyle = neb;
+    ctx.fillRect(nx, ny, nw, nh);
+  }
   ctx.strokeStyle = 'rgba(110,170,200,0.05)';
   ctx.lineWidth = 1;
   for (let gx = 0; gx <= DESIGN_W; gx += 56) {
@@ -2089,10 +2102,10 @@ function drawMatrix(ctx, time) {
     ctx.fill();
   }
   if (motionSafe()) {
-    const sweepY = view.offY + ((time * 0.03) % (DESIGN_H * view.scale + 80)) - 40;
+    const sweepY = view.offY + ((time * 0.035) % (DESIGN_H * view.scale + 80)) - 40;
     const grad = ctx.createLinearGradient(0, sweepY - 26, 0, sweepY);
     grad.addColorStop(0, 'rgba(90,220,255,0)');
-    grad.addColorStop(1, 'rgba(90,220,255,0.05)');
+    grad.addColorStop(1, 'rgba(90,220,255,0.07)');
     ctx.fillStyle = grad;
     ctx.fillRect(view.offX, sweepY - 26, DESIGN_W * view.scale, 26);
   }
@@ -2132,12 +2145,11 @@ function drawMatrix(ctx, time) {
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.strokeStyle = "rgba(40, 160, 90, 0.24)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
       // Flowing energy pulses: breached links glow green, sealed links dim cyan.
       const breachedLink = nodes[nid] && nodes[cid] && nodes[nid].status === "BREACHED" && nodes[cid].status === "BREACHED";
+      ctx.strokeStyle = breachedLink ? "rgba(80, 255, 150, 0.4)" : "rgba(40, 160, 90, 0.24)";
+      ctx.lineWidth = breachedLink ? 2.25 : 1.5;
+      ctx.stroke();
       const flow = motionSafe() ? time * 0.0009 : 0;
       for (let k = 0; k < 2; k++) {
         const packetPhase = (flow + (p1.x * 0.013) + k * 0.5) % 1;
@@ -2236,6 +2248,27 @@ function drawMatrix(ctx, time) {
     ctx.shadowColor = (isBreached || isCurrent) ? sprite.core : "rgba(140,150,165,0.35)";
     ctx.fill();
     ctx.shadowBlur = 0;
+
+    // Breached hosts wear a thin outer trace-ring in their sprite color.
+    if (isBreached) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = sprite.core;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Type glyph etched into the core dot (dark on lit cores, lit on dim ones).
+    ctx.font = `${Math.max(8, coreR * 1.1)}px 'Cascadia Mono', 'Consolas', monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = isBreached || isCurrent ? 0.9 : 0.75;
+    ctx.fillStyle = (isBreached || isCurrent) ? "rgba(4, 10, 12, 0.9)" : sprite.core;
+    ctx.fillText(sprite.glyph || "◆", cx, cy + 0.5);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = "alphabetic";
 
     // Heavy-patrol district ring: hosts on NetWatch's active sweep grid
     // wear a dashed red cordon so hot streets read at a glance.
@@ -2365,14 +2398,14 @@ function drawMatrix(ctx, time) {
   if (state.packetParticles.length) {
     const dt = 1;
     state.packetParticles = state.packetParticles.filter((pt) => pt.life > 0);
-    for (const pt of state.packetParticles) {
-      const vpx = view.offX + (pt.x / DESIGN_W) * view.cssW;
-      void vpx;
-      pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.96; pt.vy *= 0.96; pt.life -= 0.02;
-      const sxp = view.offX + pt.x * view.scale;
-      const syp = view.offY + pt.y * view.scale;
-      ctx.beginPath();
-      ctx.arc(sxp, syp, 2 * Math.max(0, pt.life), 0, Math.PI * 2);
+  for (const pt of state.packetParticles) {
+    const vpx = view.offX + (pt.x / DESIGN_W) * view.cssW;
+    void vpx;
+    pt.x += pt.vx * dt; pt.y += pt.vy * dt; pt.vx *= 0.965; pt.vy *= 0.965; pt.life -= 0.014;
+    const sxp = view.offX + pt.x * view.scale;
+    const syp = view.offY + pt.y * view.scale;
+    ctx.beginPath();
+    ctx.arc(sxp, syp, 2.4 * Math.max(0, pt.life), 0, Math.PI * 2);
       ctx.fillStyle = `rgba(${pt.color},${Math.max(0, pt.life).toFixed(2)})`;
       ctx.fill();
     }
