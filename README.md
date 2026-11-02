@@ -80,8 +80,10 @@ cyberpulse/
 └── tests/                    <- unit & integration test suite (about eight seconds)
     ├── __init__.py
     ├── test_achievements.py
+    ├── test_arc_mechanics.py
     ├── test_cli.py
     ├── test_daily.py
+    ├── test_deckos_arcs.py
     ├── test_difficulty.py
     ├── test_engine.py
     ├── test_factions.py
