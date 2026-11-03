@@ -739,7 +739,7 @@ def execute_hack_puzzle(engine: GameEngine, target_id: str, auto_solve: bool = F
     # Puzzle execution based on node puzzle_type
     p_type = node.puzzle_type or "frequency"
     if p_type == "frequency" and isinstance(puzzle, FrequencyPuzzle):
-        print(f"📡 TUNING PROTOCOL: Target frequency between 20.0 and 99.0 GHz (tolerance ±{puzzle.tolerance} GHz).")
+        print(f"📡 TUNING PROTOCOL: Target frequency between {getattr(puzzle, 'min_freq', 20.0):.1f} and {getattr(puzzle, 'max_freq', 99.0):.1f} GHz (tolerance ±{puzzle.tolerance} GHz).")
         while puzzle.attempts_left > 0:
             val_str = input(f"Enter target GHz [{puzzle.attempts_left} tries left]: ").strip()
             try:

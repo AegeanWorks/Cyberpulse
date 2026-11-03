@@ -9,8 +9,8 @@
 - **Total Python Modules**: `48`
 - **Total Classes**: `84`
 - **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `822`
-- **Total Source Lines**: `18707`
+- **Total Class Methods**: `825`
+- **Total Source Lines**: `18770`
 
 ---
 
@@ -60,7 +60,7 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1623` lines (`76161` bytes)
+**Size**: `1623` lines (`76231` bytes)
 
 **Functions:**
 - `def print_deckos(engine)`
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4482` lines (`214339` bytes)
+**Size**: `4482` lines (`214375` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -398,15 +398,16 @@
 ### [`cyberpulse/puzzles.py`](cyberpulse/puzzles.py)
 > *Interactive and deterministic cyberpunk hacking mini-game puzzles with near-miss feedback.*
 
-**Size**: `198` lines (`7998` bytes)
+**Size**: `221` lines (`9074` bytes)
 
 **Classes:**
 - `class FrequencyPuzzle` - *Tuning resonance frequency puzzle with near-miss feedback mechanics.*
-  - Method `.__init__(target_freq, tolerance)`
+  - Method `.__init__(target_freq, tolerance, attempts, min_freq, max_freq)`
   - Method `.claim_near_miss_bonus()` - *Convert the first near miss into one extra tuning attempt.*
   - Method `.to_dict()`
   - Method `.from_dict(data)`
-  - Method `.generate(seed)`
+  - Method `.difficulty_for_tier(security_level)`
+  - Method `.generate(seed, security_level)`
   - Method `.tune(guess)` - *Test a frequency guess with near-miss detection.*
 - `class BufferPuzzle` - *Memory buffer sequence matching puzzle with partial alignment detection.*
   - Method `.__init__(matrix, target_seq)`
@@ -462,7 +463,7 @@
 ### [`cyberpulse/server.py`](cyberpulse/server.py)
 > *Zero-dependency HTTP REST backend and static file server for CyberPulse Web Cyberdeck.*
 
-**Size**: `1045` lines (`46858` bytes)
+**Size**: `1045` lines (`46916` bytes)
 
 **Classes:**
 - `class CyberdeckSession` - *Encapsulates the stateful game session driving the Web Cyberdeck interface.*
@@ -1133,7 +1134,7 @@
 ### [`tests/test_puzzles.py`](tests/test_puzzles.py)
 > *Unit tests for CyberPulse hacking mini-game puzzles.*
 
-**Size**: `88` lines (`3152` bytes)
+**Size**: `128` lines (`4806` bytes)
 
 **Classes:**
 - `class TestPuzzles`
@@ -1143,6 +1144,8 @@
   - Method `.test_frequency_near_miss_grants_one_bonus_attempt()`
   - Method `.test_buffer_near_miss_grants_one_retry()`
   - Method `.test_hash_near_miss_grants_one_bonus_attempt()`
+  - Method `.test_frequency_difficulty_table_by_tier()`
+  - Method `.test_tier1_binary_search_solve_rate()`
   - Method `.test_hash_crack_puzzle()`
 
 ---

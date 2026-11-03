@@ -415,8 +415,8 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
                 puzzle_payload.update({
                     "tolerance": puzzle.tolerance,
                     "attempts_left": puzzle.attempts_left,
-                    "min_freq": 20.0,
-                    "max_freq": 99.0,
+                    "min_freq": getattr(puzzle, "min_freq", 20.0),
+                    "max_freq": getattr(puzzle, "max_freq", 99.0),
                 })
             elif isinstance(puzzle, BufferPuzzle):
                 puzzle_payload.update({

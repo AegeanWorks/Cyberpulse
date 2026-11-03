@@ -2625,6 +2625,14 @@ function displayPuzzle(pData) {
     const tol = Number(pData.tolerance);
     const tolText = Number.isFinite(tol) ? ` · ±${tol.toFixed(1)} GHz` : "";
     document.getElementById("freq-tries").textContent = `TRIES: ${pData.attempts_left}${tolText}`;
+    const slider = document.getElementById("freq-slider");
+    const lo = Number(pData.min_freq), hi = Number(pData.max_freq);
+    if (Number.isFinite(lo) && Number.isFinite(hi) && hi > lo) {
+      slider.min = String(lo); slider.max = String(hi);
+      slider.value = String((lo + hi) / 2);
+      const val = document.getElementById("freq-val");
+      if (val) val.textContent = `${Number(slider.value).toFixed(1)} GHz`;
+    }
     startOscilloscopeAnimation();
   } else if (pData.puzzle_type === "buffer") {
     document.getElementById("puzzle-buffer").classList.remove("hidden");

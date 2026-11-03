@@ -71,6 +71,46 @@ class TestPuzzles(unittest.TestCase):
         self.assertEqual(puzzle.attempts_left, 4)
         self.assertFalse(puzzle.claim_near_miss_bonus())
 
+    def test_frequency_difficulty_table_by_tier(self):
+        tier1 = FrequencyPuzzle.difficulty_for_tier(1)
+        self.assertEqual(tier1["tolerance"], 2.5)
+        self.assertLess(tier1["min_freq"], tier1["max_freq"])
+        legacy = FrequencyPuzzle.difficulty_for_tier(9)
+        self.assertEqual(legacy["tolerance"], 0.8)
+        # generate() honors the tier table but keeps the legacy default
+        # (attempts stay 3 everywhere so existing attempt-count tests hold)
+        p1 = FrequencyPuzzle.generate(1337, security_level=1)
+        self.assertEqual(p1.tolerance, 2.5)
+        self.assertEqual(p1.attempts_left, 3)
+        self.assertGreaterEqual(p1.target_freq, 35.0)
+        self.assertLessEqual(p1.target_freq, 65.0)
+        p0 = FrequencyPuzzle.generate(1337)
+        self.assertEqual(p0.tolerance, 0.8)
+        self.assertEqual(p0.attempts_left, 3)
+
+    def test_tier1_binary_search_solve_rate(self):
+        wins, used = 0, 0
+        for seed in range(50):
+            p = FrequencyPuzzle.generate(seed, security_level=1)
+            lo, hi = p.min_freq, p.max_freq
+            solved = False
+            for _ in range(p.attempts_left):
+                guess = round((lo + hi) / 2, 1)
+                ok, msg = p.tune(guess)
+                if ok:
+                    solved = True
+                    used += 1
+                    break
+                used += 1
+                if "TOO HIGH" in msg:
+                    hi = guess
+                else:
+                    lo = guess
+            if solved:
+                wins += 1
+        self.assertGreaterEqual(wins, 40)
+        self.assertLessEqual(used / max(1, wins), 3.0)
+
     def test_hash_crack_puzzle(self):
         puzzle = HashCrackPuzzle(target_word="CYBER", word_list=["CYBER", "GHOST", "PULSE"])
         # Partial match

@@ -7,10 +7,19 @@ from typing import List, Optional, Tuple
 class FrequencyPuzzle:
     """Tuning resonance frequency puzzle with near-miss feedback mechanics."""
 
-    def __init__(self, target_freq: float, tolerance: float = 0.5):
+    DIFFICULTY_BY_TIER = {
+        1: {"tolerance": 2.5, "min_freq": 35.0, "max_freq": 65.0},
+        2: {"tolerance": 2.0, "min_freq": 35.0, "max_freq": 70.0},
+    }
+    DEFAULT_DIFFICULTY = {"tolerance": 0.8, "min_freq": 20.0, "max_freq": 99.0}
+
+    def __init__(self, target_freq: float, tolerance: float = 0.5, attempts: int = 3,
+                 min_freq: float = 20.0, max_freq: float = 99.0):
         self.target_freq = round(target_freq, 1)
         self.tolerance = tolerance
-        self.attempts_left = 3
+        self.attempts_left = attempts
+        self.min_freq = min_freq
+        self.max_freq = max_freq
         self.near_miss: bool = False
         self.near_miss_awarded: bool = False
 
@@ -28,23 +37,37 @@ class FrequencyPuzzle:
             "target_freq": self.target_freq,
             "tolerance": self.tolerance,
             "attempts_left": self.attempts_left,
+            "min_freq": self.min_freq,
+            "max_freq": self.max_freq,
             "near_miss": self.near_miss,
             "near_miss_awarded": self.near_miss_awarded,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "FrequencyPuzzle":
-        puzzle = cls(target_freq=float(data["target_freq"]), tolerance=float(data["tolerance"]))
+        puzzle = cls(target_freq=float(data["target_freq"]), tolerance=float(data["tolerance"]),
+                     min_freq=float(data.get("min_freq", 20.0)),
+                     max_freq=float(data.get("max_freq", 99.0)))
         puzzle.attempts_left = int(data.get("attempts_left", puzzle.attempts_left))
         puzzle.near_miss = bool(data.get("near_miss", False))
         puzzle.near_miss_awarded = bool(data.get("near_miss_awarded", False))
         return puzzle
 
     @classmethod
-    def generate(cls, seed: int) -> "FrequencyPuzzle":
+    def difficulty_for_tier(cls, security_level: int) -> dict:
+        try:
+            tier = int(security_level)
+        except (TypeError, ValueError):
+            tier = 3
+        return dict(cls.DIFFICULTY_BY_TIER.get(tier, cls.DEFAULT_DIFFICULTY))
+
+    @classmethod
+    def generate(cls, seed: int, security_level: int = 3) -> "FrequencyPuzzle":
         rng = random.Random(seed)
-        freq = rng.uniform(20.0, 99.0)
-        return cls(target_freq=freq, tolerance=0.8)
+        spec = cls.difficulty_for_tier(security_level)
+        freq = rng.uniform(spec["min_freq"], spec["max_freq"])
+        return cls(target_freq=freq, tolerance=spec["tolerance"],
+                   min_freq=spec["min_freq"], max_freq=spec["max_freq"])
 
     def tune(self, guess: float) -> Tuple[bool, str]:
         """Test a frequency guess with near-miss detection."""

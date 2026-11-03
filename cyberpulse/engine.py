@@ -992,7 +992,7 @@ class GameEngine:
             elif p_type == "hash":
                 puzzle = HashCrackPuzzle.generate(seed)
             else:
-                puzzle = FrequencyPuzzle.generate(seed)
+                puzzle = FrequencyPuzzle.generate(seed, security_level=node.security_level)
             self.pending_puzzles[node_id] = puzzle
 
         return True, "Puzzle active.", puzzle, node

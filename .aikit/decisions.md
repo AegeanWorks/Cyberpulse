@@ -666,3 +666,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
   2. Layout only: .matrix-stage min-height 380px and .matrix-canvas-container min-height 300px so the canvas keeps room at 1280px; legend wrap/scroll and responsive breakpoints unchanged.
   3. Presentation only: canvas labels get a dark halo stroke and +1-3px vertical breathing (label +15, IP +28, tag +40); frequency modal shows TRIES plus +-tolerance from the existing /api/puzzle payload and preserves it across retries.
 - **Consequences**: Forecasts name cooling without promising post-ambient exactness; topology stays legible without node repositioning or new assets; puzzle odds are visible but unchanged (12% scripted solve rate filed as a Stage 4 balance failure for a follow-up DATA-table pass). Test suite: 555 tests, 100% green; aikit check 5/5 after map refresh.
+
+### ADR-054: Tiered frequency puzzle difficulty as data
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: Stage 4 check measured the flat frequency puzzle (tolerance 0.8 over 20-99 GHz, 3 tries) at a 12% scripted binary-search solve rate, so the tier-1 tutorial host was effectively quickhack-or-skip. Attempts stay 3 everywhere so no existing attempt-count test changes meaning.
+- **Decision**: Add FrequencyPuzzle.DIFFICULTY_BY_TIER read by generate(seed, security_level): tier 1 (2.5 GHz over 35-65), tier 2 (2.0 GHz over 35-70), tier 3+ legacy (0.8 GHz over 20-99). Engine passes node.security_level; server/CLI report the puzzle-owned range; web clamps the slider to it. Attempts unchanged at 3.
+- **Consequences**: Scripted bisection over 50 seeds now solves tier 1 at 94% (mean 2.19 tries), tier 2 at 88% (mean 2.34), tier 3+ unchanged at 12% where quickhack is the intended alternative. Old saves load via from_dict defaults. Test suite: 557 tests, 100% green.
