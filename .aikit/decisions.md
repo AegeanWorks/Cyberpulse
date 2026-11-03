@@ -656,3 +656,13 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The 10-28 menu keeper predates the longer briefing, difficulty/allegiance pickers and CONTINUE/DAILY RUN buttons; in-game views have no deep links and click control was unavailable.
 - **Decision**: Register `2026-11-03-menu.png` (`python -m cyberpulse.cli --web --port 9000`, headless Edge 1440x900, commit `26693b8`) in `.aikit/media.json` and the README `aegean:screenshots` block; keep the 10-28 menu as the before in the pair. In-game views wait for click control.
 - **Consequences**: README proves the menu evolution honestly. Reproduce with the serve plus headless `--screenshot` above.
+
+### ADR-053: Lay-low forecast honesty, topology label legibility, puzzle tolerance display
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: Stage 1/2 audit found three narrow gaps: action_forecast(lay_low) reported trace_gain 0 with no cooling while lay_low cools -2%/turn pre-patrol; matrix canvas node/IP/type labels sat 11-12px apart with no halo so edges swallowed them and the stage could collapse to min-height 0; the frequency puzzle modal showed TRIES but hid the real +-0.8 GHz tolerance the server already sends, so players tuned blind. Frequency fairness proof (50-seed binary-search solver, 6/50 solved) shows the 0.8 tolerance over 20-99 GHz in 3 attempts remains hard; no tolerance/attempts numbers change here, only its display.
+- **Decision**:
+  1. Engine forecast only: lay_low returns trace_reduction=min(trace,2*turns) and projected_trace pre-patrol plus a note naming ghost cooling and residual patrol/hunter/ambient drift; trace_gain stays 0, no lay_low behavior change.
+  2. Layout only: .matrix-stage min-height 380px and .matrix-canvas-container min-height 300px so the canvas keeps room at 1280px; legend wrap/scroll and responsive breakpoints unchanged.
+  3. Presentation only: canvas labels get a dark halo stroke and +1-3px vertical breathing (label +15, IP +28, tag +40); frequency modal shows TRIES plus +-tolerance from the existing /api/puzzle payload and preserves it across retries.
+- **Consequences**: Forecasts name cooling without promising post-ambient exactness; topology stays legible without node repositioning or new assets; puzzle odds are visible but unchanged (12% scripted solve rate filed as a Stage 4 balance failure for a follow-up DATA-table pass). Test suite: 555 tests, 100% green; aikit check 5/5 after map refresh.

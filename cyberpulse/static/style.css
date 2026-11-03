@@ -2617,7 +2617,7 @@ body {
 .matrix-stage {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2634,7 +2634,7 @@ body {
 .matrix-canvas-container {
   position: relative;
   flex: 1;
-  min-height: 0;
+  min-height: 300px;
   display: block;
   background: none;
   border: 1px solid var(--c-border);

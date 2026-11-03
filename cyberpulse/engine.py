@@ -1193,10 +1193,17 @@ class GameEngine:
             except (TypeError, ValueError):
                 turns = 1
             room = max(0, self.deck.max_cpu - self.deck.cpu_cycles)
+            cooling = min(self.state.trace_percent, self.LAY_LOW_TRACE_COOLING * turns)
             return {
                 "ok": True, "action": act, "cpu_delta": min(turns, room),
                 "trace_gain": 0, "turns": turns,
-                "notes": "Grid keeps moving (patrol, hunters, ambient).",
+                "trace_reduction": cooling,
+                "projected_trace": max(0, self.state.trace_percent - cooling),
+                "notes": (
+                    f"Ghost cooling -{self.LAY_LOW_TRACE_COOLING}%/turn "
+                    f"pre-patrol (up to -{cooling}%); +1 CPU/turn; "
+                    "grid keeps moving (patrol, hunters, ambient)."
+                ),
             }
         if act == "quickhack":
             node = self.find_node(str(target or ""))

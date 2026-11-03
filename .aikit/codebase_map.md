@@ -10,7 +10,7 @@
 - **Total Classes**: `84`
 - **Total Top-Level Functions**: `122`
 - **Total Class Methods**: `822`
-- **Total Source Lines**: `18700`
+- **Total Source Lines**: `18707`
 
 ---
 
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4475` lines (`213945` bytes)
+**Size**: `4482` lines (`214339` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*

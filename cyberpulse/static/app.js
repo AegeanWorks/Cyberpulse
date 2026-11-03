@@ -2309,7 +2309,12 @@ function drawMatrix(ctx, time) {
       ? "hsl(185, 100%, 88%)"
       : (isBreached ? "hsl(140, 60%, 74%)" : (isDiscovered ? "hsl(45, 55%, 78%)" : "rgba(170, 180, 195, 0.7)"));
     if (!compact || !isSideHost || isSelected) {
-      ctx.fillText(pos.label, cx, cy + nodeR + 14);
+      ctx.save();
+      ctx.strokeStyle = "rgba(2, 6, 8, 0.9)";
+      ctx.lineWidth = 3;
+      ctx.strokeText(pos.label, cx, cy + nodeR + 15);
+      ctx.restore();
+      ctx.fillText(pos.label, cx, cy + nodeR + 15);
     }
 
     ctx.font = `${ipSize}px 'Cascadia Mono', 'Consolas', monospace`;
@@ -2317,7 +2322,7 @@ function drawMatrix(ctx, time) {
       const ipText = node.ip_address || "";
       const ipW = ctx.measureText(ipText).width;
       const pillW = ipW + 10, pillH = ipSize + 7;
-      const px = cx - pillW / 2, py = cy + nodeR + 26 - pillH / 2 - 1;
+      const px = cx - pillW / 2, py = cy + nodeR + 28 - pillH / 2 - 1;
       ctx.fillStyle = isSelected
         ? "rgba(10, 18, 24, 0.92)"
         : isCurrent
@@ -2340,7 +2345,12 @@ function drawMatrix(ctx, time) {
       : (isBreached
         ? "rgba(140, 255, 190, 0.95)"
         : (isDiscovered ? "rgba(255, 210, 110, 0.9)" : "rgba(180, 190, 205, 0.8)"));
-    ctx.fillText(node.ip_address || "", cx, cy + nodeR + 26);
+    ctx.save();
+    ctx.strokeStyle = "rgba(2, 6, 8, 0.9)";
+    ctx.lineWidth = 3;
+    ctx.strokeText(node.ip_address || "", cx, cy + nodeR + 28);
+    ctx.restore();
+    ctx.fillText(node.ip_address || "", cx, cy + nodeR + 28);
 
     if (isCurrent) {
       ctx.font = `700 ${tagSize}px 'Cascadia Mono', 'Consolas', monospace`;
@@ -2391,7 +2401,12 @@ function drawMatrix(ctx, time) {
     ctx.font = `700 ${tagSize}px 'Cascadia Mono', 'Consolas', monospace`;
     ctx.fillStyle = isBreached ? "rgba(140,255,190,0.75)" : "rgba(140,150,165,0.5)";
     const spriteTag = (NODE_SPRITES[node.node_type] || NODE_SPRITES.GATEWAY).shape.toUpperCase();
-    ctx.fillText(spriteTag, cx, cy + nodeR + 37);
+    ctx.save();
+    ctx.strokeStyle = "rgba(2, 6, 8, 0.9)";
+    ctx.lineWidth = 3;
+    ctx.strokeText(spriteTag, cx, cy + nodeR + 40);
+    ctx.restore();
+    ctx.fillText(spriteTag, cx, cy + nodeR + 40);
   }
   lastBreachSig = "__init__";
   // Particle integrator (breach sparks drift and fade)
@@ -2607,7 +2622,9 @@ function displayPuzzle(pData) {
 
   if (pData.puzzle_type === "frequency") {
     document.getElementById("puzzle-frequency").classList.remove("hidden");
-    document.getElementById("freq-tries").textContent = `TRIES: ${pData.attempts_left}`;
+    const tol = Number(pData.tolerance);
+    const tolText = Number.isFinite(tol) ? ` · ±${tol.toFixed(1)} GHz` : "";
+    document.getElementById("freq-tries").textContent = `TRIES: ${pData.attempts_left}${tolText}`;
     startOscilloscopeAnimation();
   } else if (pData.puzzle_type === "buffer") {
     document.getElementById("puzzle-buffer").classList.remove("hidden");
@@ -2708,7 +2725,8 @@ async function handleTuneFrequency() {
     } else {
       sfx.failure();
     }
-    document.getElementById("freq-tries").textContent = `TRIES: ${res.attempts_left}`;
+    const keepTol = (document.getElementById("freq-tries").textContent.match(/±[\d.]+ GHz/) || [""])[0];
+    document.getElementById("freq-tries").textContent = `TRIES: ${res.attempts_left}${keepTol ? ` · ${keepTol}` : ""}`;
     addTerminalLog(res.message, "warn");
     if (res.attempts_left <= 0) {
       closePuzzleBay();
