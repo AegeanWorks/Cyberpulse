@@ -112,9 +112,10 @@ class SaveManager:
         backup_path = target_path.with_suffix(".bak")
 
         payload = json.dumps(data, indent=2)
-        fd, temp_name = tempfile.mkstemp(dir=self.data_dir, prefix=f".tmp_{target_path.name}_")
-        temp_path = Path(temp_name)
+        temp_path: Optional[Path] = None
         try:
+            fd, temp_name = tempfile.mkstemp(dir=self.data_dir, prefix=f".tmp_{target_path.name}_")
+            temp_path = Path(temp_name)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(payload)
                 f.flush()
@@ -131,7 +132,8 @@ class SaveManager:
                     time.sleep(0.02)
             return None
         finally:
-            temp_path.unlink(missing_ok=True)
+            if temp_path is not None:
+                temp_path.unlink(missing_ok=True)
 
     def _read_json_with_backup(self, target_path: Path, quarantine: bool = True) -> Optional[Any]:
         """Read JSON from target_path, falling back to shadow .bak if corrupted or missing."""

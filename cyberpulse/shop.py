@@ -77,11 +77,12 @@ class BlackMarketShop:
     @staticmethod
     def price_for(item: ShopItem, price_multiplier: float = 1.0) -> int:
         """Effective cost after living-grid market drift, never below 1 Cred."""
+        import math
         try:
             multiplier = float(price_multiplier)
         except (TypeError, ValueError):
             multiplier = 1.0
-        if multiplier <= 0:
+        if not math.isfinite(multiplier) or multiplier <= 0:
             multiplier = 1.0
         return max(1, int(round(item.cost * multiplier)))
 

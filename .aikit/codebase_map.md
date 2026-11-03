@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `48`
-- **Total Classes**: `85`
+- **Total Python Modules**: `49`
+- **Total Classes**: `86`
 - **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `835`
-- **Total Source Lines**: `18875`
+- **Total Class Methods**: `841`
+- **Total Source Lines**: `18954`
 
 ---
 
@@ -119,7 +119,7 @@
 ### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
 > *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
 
-**Size**: `157` lines (`6542` bytes)
+**Size**: `159` lines (`6730` bytes)
 
 **Functions:**
 - `def _rogue_present(seed, turn, alert)` - *A rogue miner squats on the deck when the grid is hot (deterministic).*
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4484` lines (`214461` bytes)
+**Size**: `4487` lines (`214564` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -301,7 +301,7 @@
 ### [`cyberpulse/models.py`](cyberpulse/models.py)
 > *Domain models for CyberPulse cyberspace nodes, decks, contracts, and career profiles.*
 
-**Size**: `852` lines (`32295` bytes)
+**Size**: `852` lines (`32310` bytes)
 
 **Classes:**
 - `class NodeType`
@@ -497,7 +497,7 @@
 ### [`cyberpulse/shop.py`](cyberpulse/shop.py)
 > *Black market cyberdeck upgrades and exploit vendor for CyberPulse.*
 
-**Size**: `167` lines (`6301` bytes)
+**Size**: `168` lines (`6354` bytes)
 
 **Classes:**
 - `class ShopItem`
@@ -512,7 +512,7 @@
 ### [`cyberpulse/storage.py`](cyberpulse/storage.py)
 > *Crash-resilient savegame and career profile storage engine for CyberPulse.*
 
-**Size**: `423` lines (`18644` bytes)
+**Size**: `425` lines (`18735` bytes)
 
 **Classes:**
 - `class SaveManager` - *Manages atomic saving and loading of game states and career profiles.*
@@ -1337,6 +1337,22 @@
   - Method `.test_hop_latency_stable_across_hash_seeds()`
   - Method `.test_traceroute_rejects_unknown_host()`
   - Method `.test_host_fingerprint_summarizes_target()`
+
+---
+
+### [`tests/test_stage3_fixes.py`](tests/test_stage3_fixes.py)
+> *Stage 3 P0 regression tests: verified swarm findings with reproductions.*
+
+**Size**: `71` lines (`2891` bytes)
+
+**Classes:**
+- `class TestStage3P0Fixes`
+  - Method `.test_complete_breach_rejects_lockdown_host()`
+  - Method `.test_exploit_service_lockout_kill_leaves_port_unbreached()`
+  - Method `.test_rival_from_dict_rejects_nonfinite()`
+  - Method `.test_price_for_rejects_nonfinite_multiplier()`
+  - Method `.test_deckos_daemon_lists_host_ip_and_sysinfo_ram()`
+  - Method `.test_write_atomic_mkstemp_failure_raises_oserror()`
 
 ---
 

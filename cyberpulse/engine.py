@@ -2853,6 +2853,9 @@ class GameEngine:
         gate = self._story_gate_reason(node)
         if gate:
             return False, gate
+        lockdown = self._lockdown_reason(node)
+        if lockdown:
+            return False, lockdown
 
         node.status = NodeStatus.BREACHED
         node.breached_turn = self.state.turns_elapsed
@@ -3567,13 +3570,13 @@ class GameEngine:
                 node.antivirus.alert_level = min(100, node.antivirus.alert_level + max(1, int(5 * av_mult)))
 
         self.deck.cpu_cycles -= cpu_needed
-        target_port.breached = True
         self.add_trace(trace_add)
         self.advance_turn()
         breached, breach_msg = self.complete_breach(node.node_id)
         if not breached:
             msg = f"💥 EXPLOIT LANDED but root access was interrupted on {node.hostname}:\n{breach_msg}{av_notice}"
             return False, msg
+        target_port.breached = True
         msg = f"💥 EXPLOIT SUCCESSFUL! Injected {exploit_label} via port {port_num} ({target_port.service}). Root access acquired on {node.hostname} ({node.ip_address})!\n{breach_msg}{av_notice}"
         return True, msg
 

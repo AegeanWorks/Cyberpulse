@@ -37,7 +37,7 @@ def list_processes(engine: Any) -> List[Dict[str, Any]]:
         pid += 1
     for daemon in list(getattr(deck, "active_daemons", [])):
         dtype = getattr(daemon, "daemon_type", "daemon")
-        host = getattr(daemon, "host_ip", "?")
+        host = getattr(daemon, "target_ip", None) or getattr(daemon, "target_node_id", None) or getattr(daemon, "host_ip", "?")
         procs.append({"pid": pid, "name": f"{dtype}[{host}]",
                       "desc": f"passive listener on {host}", "owner": "user",
                       "cpu": 0, "killable": True,
@@ -81,7 +81,7 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
         "turns": turn,
         "processes": len(procs),
         "load": load,
-        "ram_mb": int(getattr(deck, "max_ram_mb", 256)) if hasattr(deck, "max_ram_mb") else 256,
+        "ram_mb": int(getattr(deck, "max_ram", getattr(deck, "ram_mb", 256))),
         "banked": int(getattr(deck, "cryptocreds", 0)),
         "unbanked": int(getattr(state, "unbanked_creds", 0)),
     }
@@ -105,9 +105,11 @@ def kill_process(engine: Any, pid: int) -> Tuple[bool, str]:
         return True, f"Killed rogue_miner (PID {pid}): reclaimed 1 CPU cycle."
     # User daemon: recall it gracefully (stops its income, no trace penalty).
     host = target.get("daemon_host", "")
+    dtype = target.get("daemon_type", "")
     removed = 0
     for daemon in list(getattr(engine.deck, "active_daemons", [])):
-        if getattr(daemon, "host_ip", "") == host and getattr(daemon, "daemon_type", "") == target.get("daemon_type"):
+        dhost = getattr(daemon, "target_ip", None) or getattr(daemon, "target_node_id", None) or getattr(daemon, "host_ip", "")
+        if dhost == host and getattr(daemon, "daemon_type", "") == dtype:
             try:
                 engine.deck.active_daemons.remove(daemon)
                 removed += 1

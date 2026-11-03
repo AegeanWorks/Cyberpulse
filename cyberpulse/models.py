@@ -325,7 +325,7 @@ class RivalNetrunner:
         for field_name, default in (("skill", 1), ("next_move_turn", 6), ("contracts_stolen", 0)):
             try:
                 clean[field_name] = int(clean.get(field_name, default))
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 clean[field_name] = default
         clean["skill"] = max(1, min(3, clean["skill"]))
         clean["next_move_turn"] = max(1, clean["next_move_turn"])
