@@ -244,7 +244,7 @@ Free for personal play under the Aegean Game License 1.1 (AGL-1.1); see [LICENSE
 <!-- aegean:screenshots:start -->
 ## Screenshots
 
-<a href="https://github.com/AegeanWorks/Cyberpulse/commit/1215870"><img src="assets/screenshots/2026-10-28-index.png" alt="Cyberpulse interface at 2026-10-28"></a>
+<a href="https://github.com/AegeanWorks/Cyberpulse/commit/26693b8"><img src="assets/screenshots/2026-11-03-menu.png" alt="Cyberpulse menu at 2026-11-03"></a>
 
-*commit `1215870` · 2026-10-28*
+*commit `26693b8` · 2026-11-03 · viewport 1440x900 · menu gained briefing, pickers and run buttons since 10-28*
 <!-- aegean:screenshots:end -->

@@ -61,6 +61,25 @@
         "score": 90,
         "reviewed_at": "2026-10-28T11:49:29"
       }
+    },
+    {
+      "path": "assets/screenshots/2026-11-03-menu.png",
+      "alt": "Cyberpulse menu at 2026-11-03",
+      "caption": "Menu from python -m cyberpulse.cli --web (http://127.0.0.1:9000): longer briefing, difficulty and allegiance pickers, CONTINUE/DAILY RUN buttons.",
+      "commit": "26693b84b575855e38337d31a3300da27260fc72",
+      "taken_at": "2026-11-03",
+      "viewport": "1440x900",
+      "width": 1440,
+      "height": 900,
+      "status": "approved",
+      "review": {
+        "status": "approved",
+        "reviewer": "agent:kilo",
+        "method": "vision",
+        "notes": "Real headless-Edge capture of the served deck: new pickers and run buttons all legible versus the 10-28 menu; genuine before/after evolution, no cherry-pick.",
+        "score": 93,
+        "reviewed_at": "2026-11-03"
+      }
     }
   ],
   "model": "community/scriptsnsenses-sys/flux-2-dev-free"

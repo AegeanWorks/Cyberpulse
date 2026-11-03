@@ -649,3 +649,10 @@ contract, a dependency, a data format or the architecture; IDs are consecutive a
 - **Context**: The grid needed more content (hosts, payloads, rivals) without new generation code. All three content pools are plain data tables sampled by seed, so appending rows shifts per-seed outcomes.
 - **Decision**: Add 3 SIDE_HOST_TEMPLATES rows (postgres:5433, smb:139, https:8443, existing services only), 2 KNOWN_CVES rows (postgres, smb, inside existing stat bands), and 1 RIVAL_ROSTER row (Nulljack, skill 2, appended). No generator, UI, or numbers logic changes; reachability is asserted at table level by tests.
 - **Consequences**: Deterministic per code version, but run replays and dailies differ across this patch: rng.sample over 9 templates and rng.choice over 4 rivals remap seeds. Old saves load unchanged (additive rows only).
+
+### ADR-052: Menu keeper at HEAD shows the grown main menu
+- **Date**: 2026-11-03
+- **Status**: Accepted
+- **Context**: The 10-28 menu keeper predates the longer briefing, difficulty/allegiance pickers and CONTINUE/DAILY RUN buttons; in-game views have no deep links and click control was unavailable.
+- **Decision**: Register `2026-11-03-menu.png` (`python -m cyberpulse.cli --web --port 9000`, headless Edge 1440x900, commit `26693b8`) in `.aikit/media.json` and the README `aegean:screenshots` block; keep the 10-28 menu as the before in the pair. In-game views wait for click control.
+- **Consequences**: README proves the menu evolution honestly. Reproduce with the serve plus headless `--screenshot` above.
