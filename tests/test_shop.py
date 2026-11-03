@@ -89,6 +89,15 @@ class TestShop(unittest.TestCase):
         self.assertEqual(self.shop.price_for(self.shop.catalog["overclock_cpu"], "not-a-number"), 150)
         self.assertEqual(self.shop.price_for(self.shop.catalog["overclock_cpu"], 0), 150)
 
+    def test_explicit_empty_catalog_is_honored(self):
+        shop = BlackMarketShop({})
+        self.assertEqual(shop.catalog, {})
+        self.assertEqual(shop.list_available(self.deck), [])
+
+    def test_none_catalog_falls_back_to_default(self):
+        shop = BlackMarketShop(None)
+        self.assertGreaterEqual(len(shop.catalog), 4)
+
 
 if __name__ == "__main__":
     unittest.main()

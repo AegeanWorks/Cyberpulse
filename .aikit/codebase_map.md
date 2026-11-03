@@ -9,8 +9,8 @@
 - **Total Python Modules**: `48`
 - **Total Classes**: `84`
 - **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `820`
-- **Total Source Lines**: `18691`
+- **Total Class Methods**: `822`
+- **Total Source Lines**: `18700`
 
 ---
 
@@ -496,7 +496,7 @@
 ### [`cyberpulse/shop.py`](cyberpulse/shop.py)
 > *Black market cyberdeck upgrades and exploit vendor for CyberPulse.*
 
-**Size**: `167` lines (`6276` bytes)
+**Size**: `167` lines (`6301` bytes)
 
 **Classes:**
 - `class ShopItem`
@@ -1293,7 +1293,7 @@
 ### [`tests/test_shop.py`](tests/test_shop.py)
 > *Unit tests for Black Market Shop in CyberPulse.*
 
-**Size**: `94` lines (`3836` bytes)
+**Size**: `103` lines (`4177` bytes)
 
 **Classes:**
 - `class TestShop`
@@ -1307,6 +1307,8 @@
   - Method `.test_market_markup_raises_prices()`
   - Method `.test_market_discount_lowers_prices()`
   - Method `.test_invalid_market_multiplier_falls_back_to_base_price()`
+  - Method `.test_explicit_empty_catalog_is_honored()`
+  - Method `.test_none_catalog_falls_back_to_default()`
 
 ---
 

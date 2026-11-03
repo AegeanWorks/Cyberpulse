@@ -72,7 +72,7 @@ class BlackMarketShop:
     """Manages purchasing of cyberdeck hardware upgrades and exploit chips."""
 
     def __init__(self, catalog: Optional[Dict[str, ShopItem]] = None):
-        self.catalog = catalog or CATALOG
+        self.catalog = catalog if catalog is not None else CATALOG
 
     @staticmethod
     def price_for(item: ShopItem, price_multiplier: float = 1.0) -> int:
