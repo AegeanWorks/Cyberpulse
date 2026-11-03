@@ -1,7 +1,7 @@
 """Unit tests for CyberPulse hacking mini-game puzzles."""
 
 import unittest
-from cyberpulse.puzzles import BufferPuzzle, FrequencyPuzzle, HashCrackPuzzle
+from cyberpulse.puzzles import BufferPuzzle, FrequencyPuzzle, HashCrackPuzzle, puzzle_from_dict
 
 
 class TestPuzzles(unittest.TestCase):
@@ -110,6 +110,28 @@ class TestPuzzles(unittest.TestCase):
                 wins += 1
         self.assertGreaterEqual(wins, 40)
         self.assertLessEqual(used / max(1, wins), 3.0)
+
+    def test_hash_length_mismatch_is_not_near_miss(self):
+        short = HashCrackPuzzle(target_word="CYBER", word_list=["CYBER", "GHOST", "PULSE"])
+        ok, _ = short.guess("CYBE")
+        self.assertFalse(ok)
+        self.assertFalse(short.near_miss)
+        long = HashCrackPuzzle(target_word="CYBER", word_list=["CYBER", "GHOST", "PULSE"])
+        ok, _ = long.guess("CYBERX")
+        self.assertFalse(ok)
+        self.assertFalse(long.near_miss)
+
+    def test_frequency_rejects_non_numeric_input(self):
+        puzzle = FrequencyPuzzle(target_freq=50.0, tolerance=0.5)
+        ok, msg = puzzle.tune("not-a-number")
+        self.assertFalse(ok)
+        self.assertIn("Invalid frequency", msg)
+        self.assertEqual(puzzle.attempts_left, 3)
+
+    def test_puzzle_from_dict_rejects_non_dict(self):
+        self.assertIsNone(puzzle_from_dict(None))
+        self.assertIsNone(puzzle_from_dict("frequency"))
+        self.assertIsNone(puzzle_from_dict([]))
 
     def test_hash_crack_puzzle(self):
         puzzle = HashCrackPuzzle(target_word="CYBER", word_list=["CYBER", "GHOST", "PULSE"])

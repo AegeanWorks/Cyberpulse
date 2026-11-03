@@ -492,6 +492,23 @@ class TestStorage(unittest.TestCase):
         self.assertEqual(saves["auto"]["label"], "AUTOSAVE")
         self.assertEqual(saves["auto"]["trace"], 20)
 
+    def test_autosave_notices_difficulty_change(self):
+        engine = GameEngine(seed=7)
+        self.save_mgr.mark_autosave_baseline(engine)
+        self.assertIsNone(self.save_mgr.autosave(engine))
+        engine.difficulty = "hard"
+        self.assertIsNotNone(self.save_mgr.autosave(engine))
+
+    def test_load_hostile_seed_returns_none(self):
+        import json
+        engine = GameEngine(seed=7)
+        self.save_mgr.save(engine, 1)
+        path = self.save_mgr.slot_path("1")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["seed"] = "not-an-int"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.assertIsNone(self.save_mgr.load(1))
+
     def test_autosave_refuses_a_finished_run(self):
         engine = GameEngine(seed=8)
         engine.state.is_victory = True

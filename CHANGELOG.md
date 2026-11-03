@@ -2,7 +2,7 @@
 
 All notable changes to CyberPulse are recorded here. The format follows Keep a Changelog, and versions use semantic versioning.
 
-## [Unreleased] - 0.5.0 simulation + arcs + DeckOS
+## [Unreleased]
 
 ### Added
 

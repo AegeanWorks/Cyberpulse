@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `48`
-- **Total Classes**: `84`
+- **Total Classes**: `85`
 - **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `825`
-- **Total Source Lines**: `18770`
+- **Total Class Methods**: `835`
+- **Total Source Lines**: `18875`
 
 ---
 
@@ -119,7 +119,7 @@
 ### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
 > *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
 
-**Size**: `144` lines (`6192` bytes)
+**Size**: `157` lines (`6542` bytes)
 
 **Functions:**
 - `def _rogue_present(seed, turn, alert)` - *A rogue miner squats on the deck when the grid is hot (deterministic).*
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4482` lines (`214375` bytes)
+**Size**: `4484` lines (`214461` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -301,7 +301,7 @@
 ### [`cyberpulse/models.py`](cyberpulse/models.py)
 > *Domain models for CyberPulse cyberspace nodes, decks, contracts, and career profiles.*
 
-**Size**: `843` lines (`32083` bytes)
+**Size**: `852` lines (`32295` bytes)
 
 **Classes:**
 - `class NodeType`
@@ -398,7 +398,7 @@
 ### [`cyberpulse/puzzles.py`](cyberpulse/puzzles.py)
 > *Interactive and deterministic cyberpunk hacking mini-game puzzles with near-miss feedback.*
 
-**Size**: `221` lines (`9074` bytes)
+**Size**: `227` lines (`9364` bytes)
 
 **Classes:**
 - `class FrequencyPuzzle` - *Tuning resonance frequency puzzle with near-miss feedback mechanics.*
@@ -512,7 +512,7 @@
 ### [`cyberpulse/storage.py`](cyberpulse/storage.py)
 > *Crash-resilient savegame and career profile storage engine for CyberPulse.*
 
-**Size**: `418` lines (`18255` bytes)
+**Size**: `423` lines (`18644` bytes)
 
 **Classes:**
 - `class SaveManager` - *Manages atomic saving and loading of game states and career profiles.*
@@ -792,7 +792,7 @@
 ### [`tests/test_deckos_arcs.py`](tests/test_deckos_arcs.py)
 > *DeckOS computer simulation + operative arcs + district sim (Cyberpulse 0.5.0).*
 
-**Size**: `108` lines (`4091` bytes)
+**Size**: `117` lines (`4444` bytes)
 
 **Classes:**
 - `class DeckOSTest`
@@ -801,6 +801,8 @@
   - Method `.test_sysinfo_reports_uptime_and_specs()`
   - Method `.test_kill_unknown_pid_fails()`
   - Method `.test_kill_protected_proc_fails()`
+  - Method `.test_kill_invalid_pid_returns_false()`
+  - Method `.test_recent_history_invalid_limit_falls_back()`
   - Method `.test_history_roundtrip()`
   - Method `.test_engine_summaries_present()`
 - `class ArcsTest`
@@ -1082,7 +1084,7 @@
 ### [`tests/test_models.py`](tests/test_models.py)
 > *Unit tests for CyberPulse domain models.*
 
-**Size**: `303` lines (`12486` bytes)
+**Size**: `306` lines (`12628` bytes)
 
 **Classes:**
 - `class TestModels`
@@ -1103,6 +1105,7 @@
   - Method `.test_exploit_payload_and_employee_models()`
   - Method `.test_node_with_cyber_warfare_components()`
   - Method `.test_known_cves_deck_and_catalog()`
+  - Method `.test_known_cves_backfill_matches_default()`
 
 ---
 
@@ -1134,7 +1137,7 @@
 ### [`tests/test_puzzles.py`](tests/test_puzzles.py)
 > *Unit tests for CyberPulse hacking mini-game puzzles.*
 
-**Size**: `128` lines (`4806` bytes)
+**Size**: `150` lines (`5786` bytes)
 
 **Classes:**
 - `class TestPuzzles`
@@ -1146,6 +1149,9 @@
   - Method `.test_hash_near_miss_grants_one_bonus_attempt()`
   - Method `.test_frequency_difficulty_table_by_tier()`
   - Method `.test_tier1_binary_search_solve_rate()`
+  - Method `.test_hash_length_mismatch_is_not_near_miss()`
+  - Method `.test_frequency_rejects_non_numeric_input()`
+  - Method `.test_puzzle_from_dict_rejects_non_dict()`
   - Method `.test_hash_crack_puzzle()`
 
 ---
@@ -1318,7 +1324,7 @@
 ### [`tests/test_sim_life.py`](tests/test_sim_life.py)
 > *Failing-first tests for lifelike simulation: routes, fingerprints, work shifts.*
 
-**Size**: `76` lines (`3242` bytes)
+**Size**: `83` lines (`3594` bytes)
 
 **Classes:**
 - `class TestSimLife`
@@ -1328,6 +1334,7 @@
   - Method `.test_legacy_employee_defaults_to_day_shift()`
   - Method `.test_traceroute_reports_hops_and_latency()`
   - Method `.test_traceroute_is_deterministic()`
+  - Method `.test_hop_latency_stable_across_hash_seeds()`
   - Method `.test_traceroute_rejects_unknown_host()`
   - Method `.test_host_fingerprint_summarizes_target()`
 
@@ -1336,7 +1343,7 @@
 ### [`tests/test_storage.py`](tests/test_storage.py)
 > *Unit tests for CyberPulse savegame and career profile persistence.*
 
-**Size**: `635` lines (`24667` bytes)
+**Size**: `652` lines (`25361` bytes)
 
 **Classes:**
 - `class TestStorage`
@@ -1372,6 +1379,8 @@
   - Method `.test_failed_replace_reports_no_save()`
   - Method `.test_slots_are_isolated_and_listed_with_progress()`
   - Method `.test_autosave_writes_once_per_state_change()`
+  - Method `.test_autosave_notices_difficulty_change()`
+  - Method `.test_load_hostile_seed_returns_none()`
   - Method `.test_autosave_refuses_a_finished_run()`
   - Method `.test_delete_run_removes_every_checkpoint_of_that_run_only()`
   - Method `.test_legacy_save_without_run_id_is_still_slot_one()`
@@ -1417,7 +1426,7 @@
 ### [`tests/test_visuals.py`](tests/test_visuals.py)
 > *Unit tests for presentation sprite registries and the CLI topology map.*
 
-**Size**: `73` lines (`2627` bytes)
+**Size**: `85` lines (`3271` bytes)
 
 **Classes:**
 - `class TestVisualRegistries`
@@ -1428,6 +1437,8 @@
 - `class TestTopologyMap`
   - Method `.test_fixed_slots_and_current_marker()`
   - Method `.test_unknown_node_renders_placeholder()`
+- `class TestWebKeymapContract`
+  - Method `.test_no_duplicate_single_key_bindings()`
 
 ---
 

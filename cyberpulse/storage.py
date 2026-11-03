@@ -275,13 +275,18 @@ class SaveManager:
             self._owned_slots.add(key)
             self._last_autosave_signature = self._signature(engine)
             return engine
-        except (KeyError, TypeError):
+        except (AttributeError, KeyError, TypeError, ValueError):
             return None
 
     def _signature(self, engine: GameEngine) -> str:
         """Hash the parts of a run that autosave should notice without rewriting unchanged state."""
         payload = {
             "run_id": getattr(engine, "run_id", ""),
+            "difficulty": getattr(engine, "difficulty", "normal"),
+            "allegiance": getattr(engine, "allegiance", "none"),
+            "faction_standing": getattr(engine, "faction_standing", {}),
+            "daily_key": getattr(engine, "daily_key", ""),
+            "daily_modifier": getattr(engine, "daily_modifier", ""),
             "state": engine.state.to_dict(),
             "deck": engine.deck.to_dict(),
             "nodes": {
@@ -414,5 +419,5 @@ class SaveManager:
 
         try:
             return CareerProfile.from_dict(data)
-        except (KeyError, TypeError):
+        except (AttributeError, KeyError, TypeError, ValueError):
             return CareerProfile()

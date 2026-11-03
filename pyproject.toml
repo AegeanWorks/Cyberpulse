@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 license = "LicenseRef-AGL-1.1"
-license-files = ["LICENSE", "LICENSES/LicenseRef-AL-1.1.txt"]
+license-files = ["LICENSE", "LICENSES/LicenseRef-AGL-1.1.txt", "LICENSES/LicenseRef-AL-1.1.txt"]
 name = "cyberpulse"
 version = "0.4.0"
 description = "A retro-cyberpunk terminal hacking simulation game"

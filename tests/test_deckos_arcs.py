@@ -38,6 +38,15 @@ class DeckOSTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("protected", msg)
 
+    def test_kill_invalid_pid_returns_false(self):
+        for bad in ("abc", None, "3.5"):
+            ok, _ = kill_process(self.engine, bad)
+            self.assertFalse(ok)
+
+    def test_recent_history_invalid_limit_falls_back(self):
+        record_history(self.engine, "scan")
+        self.assertEqual(recent_history(self.engine, "abc"), ["scan"])
+
     def test_history_roundtrip(self):
         record_history(self.engine, "scan")
         record_history(self.engine, "ps")

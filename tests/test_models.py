@@ -297,6 +297,9 @@ class TestModels(unittest.TestCase):
         restored = CyberDeck.from_dict(data)
         self.assertEqual(restored.known_cves, deck.known_cves)
 
+    def test_known_cves_backfill_matches_default(self):
+        self.assertEqual(CyberDeck.from_dict({}).known_cves, CyberDeck().known_cves)
+
 
 if __name__ == "__main__":
     unittest.main()

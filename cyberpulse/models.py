@@ -612,7 +612,16 @@ class CyberDeck:
                 MalwareDaemon.from_dict(d) if isinstance(d, dict) else d for d in clean["active_daemons"]
             ]
         if "known_cves" not in clean:
-            clean["known_cves"] = ["CVE-2024-38812", "CVE-2023-22515", "CVE-2024-21413", "CVE-2025-9901"]
+            clean["known_cves"] = [
+                "CVE-2024-38812",
+                "CVE-2023-22515",
+                "CVE-2024-21413",
+                "CVE-2024-6387",
+                "CVE-2023-38606",
+                "CVE-2011-2523",
+                "CVE-2022-0778",
+                "CVE-2025-9901",
+            ]
         if "operating_stance" not in clean:
             clean["operating_stance"] = OperatingStance.BALANCED
         if "proxy_chain" not in clean:

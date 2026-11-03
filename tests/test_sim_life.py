@@ -58,6 +58,13 @@ class TestSimLife(unittest.TestCase):
         second = GameEngine(seed=4242).trace_route("node_central_core")
         self.assertEqual(first, second)
 
+    def test_hop_latency_stable_across_hash_seeds(self):
+        import hashlib
+        from types import SimpleNamespace
+        node = SimpleNamespace(node_id="node_proxy_a", security_level=1)
+        expected = 8 + 1 * 3 + int(hashlib.sha256(b"node_proxy_a").hexdigest(), 16) % 7
+        self.assertEqual(GameEngine.hop_latency_ms(node), expected)
+
     def test_traceroute_rejects_unknown_host(self):
         engine = GameEngine(seed=1337)
         route = engine.trace_route("node_missing")

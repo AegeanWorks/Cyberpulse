@@ -3889,21 +3889,13 @@ async function handleEvadeAv() {
       var tag = (document.activeElement && document.activeElement.tagName) || "";
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       var k = (ev.key || "").toLowerCase();
-      function click(id) { var el = $(id); if (el && !el.disabled) { el.click(); ev.preventDefault(); } }
       if (k === "g") { renderSimPanels(); var m = $("modal-sim"); if (m) { m.classList.remove("hidden"); ev.preventDefault(); } }
       else if (k === "t") { renderSimPanels(); var m2 = $("modal-arcs"); if (m2) { m2.classList.remove("hidden"); ev.preventDefault(); } }
-      else if (k === "h") {
+      else if (k === "h" && ev.shiftKey) {
         document.body.classList.toggle("hc");
         try { localStorage.setItem("cyberpulse-hc", document.body.classList.contains("hc") ? "1" : "0"); } catch (_) {}
+        ev.preventDefault();
       }
-      else if (k === "s") click("btn-scan");
-      else if (k === "o") click("btn-overdrive");
-      else if (k === "v") click("btn-spoof");
-      else if (k === "l") click("btn-lay-low");
-      else if (k === "j") click("btn-jackout");
-      else if (k === "q") click("btn-quests-open");
-      else if (k === "n") click("btn-contacts-open");
-      else if (k === "d") click("btn-career-open");
     });
     try { if (localStorage.getItem("cyberpulse-hc") === "1") document.body.classList.add("hc"); } catch (_) {}
   }

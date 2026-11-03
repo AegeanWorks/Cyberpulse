@@ -69,5 +69,17 @@ class TestTopologyMap(unittest.TestCase):
         self.assertEqual(topology_token(engine, "node_missing"), "[   ]")
 
 
+class TestWebKeymapContract(unittest.TestCase):
+    def test_no_duplicate_single_key_bindings(self):
+        from pathlib import Path
+        text = (Path(__file__).resolve().parent.parent / "cyberpulse" / "static" / "app.js").read_text(encoding="utf-8")
+        tail = text.split("function bindShortcuts()", 1)[1]
+        for dup in ('click("btn-scan")', 'click("btn-overdrive")', 'click("btn-spoof")',
+                     'click("btn-lay-low")', 'click("btn-jackout")',
+                     'click("btn-quests-open")', 'click("btn-contacts-open")',
+                     'click("btn-career-open")'):
+            self.assertNotIn(dup, tail)
+
+
 if __name__ == "__main__":
     unittest.main()

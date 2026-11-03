@@ -1,5 +1,6 @@
 """Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback."""
 
+import hashlib
 import random
 import time
 import uuid
@@ -1472,7 +1473,8 @@ class GameEngine:
     def hop_latency_ms(node: Any) -> int:
         """Deterministic per-hop latency: base + security tiers + stable jitter."""
         base = 8 + max(1, int(getattr(node, "security_level", 1))) * 3
-        jitter = abs(hash(getattr(node, "node_id", "?"))) % 7
+        digest = hashlib.sha256(str(getattr(node, "node_id", "?")).encode("utf-8")).hexdigest()
+        jitter = int(digest, 16) % 7
         return base + jitter
 
     def trace_route(self, target: Any = "") -> Dict[str, Any]:

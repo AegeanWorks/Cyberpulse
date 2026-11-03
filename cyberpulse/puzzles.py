@@ -71,6 +71,10 @@ class FrequencyPuzzle:
 
     def tune(self, guess: float) -> Tuple[bool, str]:
         """Test a frequency guess with near-miss detection."""
+        try:
+            guess = float(guess)
+        except (TypeError, ValueError):
+            return False, "⚠️  Invalid frequency input. Enter a number in GHz."
         self.attempts_left -= 1
         diff = guess - self.target_freq
         if abs(diff) <= self.tolerance:
@@ -186,14 +190,14 @@ class HashCrackPuzzle:
     def guess(self, candidate: str) -> Tuple[bool, str]:
         """Evaluate a guess and return matching character count with near-miss detection."""
         self.attempts_left -= 1
-        candidate = candidate.upper().strip()
+        candidate = str(candidate).upper().strip()
 
         if candidate == self.target_word:
             self.near_miss = False
             return True, f"🔓 ACCESS GRANTED! Password hash cracked: '{self.target_word}'."
 
         matches = sum(1 for a, b in zip(candidate, self.target_word) if a == b)
-        self.near_miss = matches == (len(self.target_word) - 1)
+        self.near_miss = len(candidate) == len(self.target_word) and matches == (len(self.target_word) - 1)
         near_miss_text = " [⚡ CRITICAL NEAR-MISS! Only 1 character off!]" if self.near_miss else ""
 
         if self.attempts_left <= 0:
@@ -211,11 +215,13 @@ PUZZLE_TYPES = {
 
 def puzzle_from_dict(data: dict) -> Optional[object]:
     """Restore a persisted puzzle payload, or None when the type is unknown."""
+    if not isinstance(data, dict):
+        return None
     puzzle_type = str(data.get("type", "")).lower()
     factory = PUZZLE_TYPES.get(puzzle_type)
     if factory is None:
         return None
     try:
         return factory.from_dict(data)
-    except (KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError):
         return None

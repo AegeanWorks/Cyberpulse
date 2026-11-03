@@ -89,8 +89,12 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
 
 def kill_process(engine: Any, pid: int) -> Tuple[bool, str]:
     """Terminate a killable DeckOS process. Rogue miners free CPU; daemons are recalled."""
+    try:
+        wanted = int(pid)
+    except (TypeError, ValueError):
+        return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
     procs = list_processes(engine)
-    target = next((p for p in procs if p["pid"] == int(pid)), None)
+    target = next((p for p in procs if p["pid"] == wanted), None)
     if target is None:
         return False, f"No process with PID {pid}. Run `ps` to list the table."
     if not target.get("killable"):
@@ -139,6 +143,15 @@ def record_history(engine: Any, cmd_line: str) -> None:
 
 
 def recent_history(engine: Any, limit: int = 10) -> List[str]:
-    hist = list(getattr(engine.state, "cmd_history", []) or [])
-    limit = max(1, min(50, int(limit)))
+    hist = getattr(getattr(engine, "state", None), "cmd_history", []) or []
+    if isinstance(hist, str):
+        hist = [hist]
+    try:
+        hist = list(hist)
+    except TypeError:
+        return []
+    try:
+        limit = max(1, min(50, int(limit)))
+    except (TypeError, ValueError):
+        limit = 10
     return hist[-limit:]
