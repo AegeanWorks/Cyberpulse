@@ -1747,6 +1747,8 @@ class GameEngine:
         if self.state.is_victory:
             return False, "Cannot lay low: mission already complete."
         try:
+            if isinstance(turns, bool) or isinstance(turns, float):
+                return False, "Lay low accepts a whole number of turns (1-3)."
             count = int(turns)
         except (TypeError, ValueError):
             return False, "Lay low accepts a whole number of turns (1-3)."

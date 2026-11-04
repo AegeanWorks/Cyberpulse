@@ -34,6 +34,8 @@ MAX_BODY_BYTES = 1024 * 1024
 
 def coerce_seed(value: Any) -> int:
     """Convert API/CLI seed input to an integer, rejecting non-finite or non-numeric values."""
+    if isinstance(value, bool):
+        raise ValueError("seed must be a finite number")
     try:
         number = float(value)
     except (TypeError, ValueError, OverflowError) as exc:
@@ -41,6 +43,22 @@ def coerce_seed(value: Any) -> int:
     if not math.isfinite(number):
         raise ValueError("seed must be finite")
     return int(number)
+
+
+def strict_int(value: Any, field: str = "value") -> int:
+    """Parse an integer payload strictly, rejecting bools, floats, and non-integer strings."""
+    if isinstance(value, bool):
+        raise ValueError(f"{field} must be an integer")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        raise ValueError(f"{field} must be an integer")
+    if isinstance(value, str):
+        text = value.strip()
+        if not text or not text.lstrip("+-").isdigit():
+            raise ValueError(f"{field} must be an integer")
+        return int(text)
+    raise ValueError(f"{field} must be an integer")
 
 
 class CyberdeckSession:
@@ -254,6 +272,8 @@ class CyberdeckSession:
         loaded = self.save_mgr.load(key)
         if loaded is None:
             return False, f"No saved run found in {label}. Save a run before trying to continue."
+        if loaded.state.is_victory or loaded.state.is_game_over or loaded.state.is_jacked_out:
+            return False, f"Checkpoint in {label} is from a finished run and cannot be continued."
         self.engine = loaded
         self.active_puzzle = None
         self.active_puzzle_node_id = None
@@ -457,6 +477,9 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             return
 
         # Serve static assets
+        if path.startswith("/api/"):
+            self.send_json_response({"ok": False, "error": "Unknown endpoint"}, HTTPStatus.NOT_FOUND)
+            return
         self.serve_static(path)
 
     def serve_static(self, path: str) -> None:
@@ -486,6 +509,10 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, "Failed to read file")
 
     def do_POST(self) -> None:
+        ctype = self.headers.get("Content-Type", "").split(";")[0].strip().lower()
+        if ctype != "application/json":
+            self.send_json_response({"ok": False, "error": "Content-Type must be application/json"}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
         try:
             content_len = int(self.headers.get("Content-Length", 0))
         except (TypeError, ValueError):
@@ -742,7 +769,7 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             if action == "exploit_service":
                 target = payload.get("target") or engine.state.current_node_id
                 try:
-                    port = int(payload.get("port", 0))
+                    port = strict_int(payload.get("port", 0), "port")
                 except (TypeError, ValueError):
                     self.send_json_response({"ok": False, "error": "Port must be an integer"}, HTTPStatus.BAD_REQUEST)
                     return
@@ -754,7 +781,7 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
             if action in ("bypass_firewall", "bypass"):
                 target = payload.get("target") or engine.state.current_node_id
                 try:
-                    port = int(payload.get("port", 0))
+                    port = strict_int(payload.get("port", 0), "port")
                 except (TypeError, ValueError):
                     self.send_json_response({"ok": False, "error": "Port must be an integer"}, HTTPStatus.BAD_REQUEST)
                     return
@@ -839,7 +866,7 @@ class CyberdeckHTTPHandler(BaseHTTPRequestHandler):
 
             if action == "kill_process":
                 try:
-                    pid = int(payload.get("pid", payload.get("target", 0)))
+                    pid = strict_int(payload.get("pid", payload.get("target", 0)), "pid")
                 except (TypeError, ValueError):
                     self.send_json_response({"ok": False, "error": "PID must be a number"}, HTTPStatus.BAD_REQUEST)
                     return
