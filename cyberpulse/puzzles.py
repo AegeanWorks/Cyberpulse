@@ -14,6 +14,10 @@ class FrequencyPuzzle:
     }
     DEFAULT_DIFFICULTY = {"tolerance": 0.8, "min_freq": 20.0, "max_freq": 99.0}
 
+    # Near-miss window as a multiple of tolerance (Clark et al.: almost-won cue).
+    # Tuned from data; widens/narrows the harmonic band without touching fairness.
+    NEAR_MISS_WINDOW = 2.5
+
     def __init__(self, target_freq: float, tolerance: float = 0.5, attempts: int = 3,
                  min_freq: float = 20.0, max_freq: float = 99.0):
         self.target_freq = round(target_freq, 1)
@@ -97,7 +101,7 @@ class FrequencyPuzzle:
             self.near_miss = False
             return True, f"🎯 RESONANCE LOCKED! Frequency aligned at {guess:.1f} GHz."
 
-        self.near_miss = abs(diff) <= (self.tolerance * 2.5)
+        self.near_miss = abs(diff) <= (self.tolerance * FrequencyPuzzle.NEAR_MISS_WINDOW)
         hint = "TOO HIGH" if diff > 0 else "TOO LOW"
         near_miss_text = " [⚡ NEAR-MISS! Resonance harmonic almost locked!]" if self.near_miss else ""
 

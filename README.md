@@ -51,6 +51,9 @@ cyberpulse/
 ├── start.bat                 <- Windows one-click launcher
 ├── start.py                  <- universal launcher (defaults to --web)
 ├── start.sh                  <- POSIX / Linux / macOS launcher
+├── scripts/                  <- deterministic proof harnesses (stdlib only)
+│   ├── check_odds.py         <- stated-vs-coded odds verification
+│   └── engagement_sim.py     <- scripted play sessions with measurements
 ├── cyberpulse/               <- core game engine and CLI
 │   ├── __init__.py
 │   ├── achievements.py       <- career milestone catalog & settlement unlocks
@@ -92,7 +95,9 @@ cyberpulse/
     ├── test_cli.py
     ├── test_daily.py
     ├── test_deckos_arcs.py
+    ├── test_delta23_fixes.py
     ├── test_difficulty.py
+    ├── test_engagement_fairness.py
     ├── test_engine.py
     ├── test_factions.py
     ├── test_forecast.py

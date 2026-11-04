@@ -1,54 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "delta-review-23",
+    "task_id": "engage-loop-1",
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793796587.2341754,
+    "updated_at": 1793809597.5213256,
     "owner": "kilo:2",
     "started_by": "kilo:2",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "center-ip-ui",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/3] Center matrix IP readout: live coords chip + canvas IP pills + hover",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793566044.292773,
-      "timestamp_str": "2026-11-01 23:47:24",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "coords label static, canvas IPs tiny with no backdrop, no hover affordance",
-        "benefits": "scannable IPs, live selection readout, pointer affordance",
-        "risks": "contract: static/JS only; dependency: zero-dep; concurrency: rAF single thread; state: no persisted fields",
-        "mitigation": "surgical canvas/DOM edits, motion-safe preserved, JS check + full suite"
-      }
-    },
-    {
-      "task_id": "center-ip-ui",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[3/3] Center IP readout done, 463 tests OK, check 5/5 passed, checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793566128.0502357,
-      "timestamp_str": "2026-11-01 23:48:48",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "center-ip-ui",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'center-ip-ui' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793566128.7060866,
-      "timestamp_str": "2026-11-01 23:48:48",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "sim-life",
       "phase": "phase 2",
@@ -268,6 +230,45 @@
       "status": "in_progress",
       "timestamp": 1793796587.2341754,
       "timestamp_str": "2026-11-04 15:49:47",
+      "agent": "kilo:2"
+    },
+    {
+      "task_id": "engage-loop-1",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/4] Engagement loop: fairness proofs + tuning tables + scripted sessions, no behavior change unless proof fails",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809259.4201758,
+      "timestamp_str": "2026-11-04 19:20:59",
+      "agent": "kilo:2",
+      "impact_assessment": {
+        "why": "CyberPulse has all five engagement pillars but claims are asserted, numbers scattered/hardcoded, no aggregated play measurements",
+        "benefits": "Honest odds, tunable tables, scripted proof of loop working, gate debt cleared",
+        "risks": "contract: additive only, no save schema change; dependency: stdlib only; concurrency: single-threaded engine; state: no persisted fields, logs outside saves",
+        "mitigation": "Failing-first scripts with deterministic seeds, full suite + aikit check after every edit, explicit staging, no push"
+      },
+      "plan_digest": "c8e78f8877fe00bf9007b33fb979826802986052dcc4af56dd02cb76b3c96c4c"
+    },
+    {
+      "task_id": "delta-review-23",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'engage-loop-1' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793809259.4201758,
+      "timestamp_str": "2026-11-04 19:20:59",
+      "agent": "kilo:2"
+    },
+    {
+      "task_id": "engage-loop-1",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[4/4] Engagement instrumentation done: tables centralized, odds proven, 628 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793809597.5213256,
+      "timestamp_str": "2026-11-04 19:26:37",
       "agent": "kilo:2"
     }
   ]

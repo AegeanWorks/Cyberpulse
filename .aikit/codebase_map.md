@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `58`
-- **Total Classes**: `98`
-- **Total Top-Level Functions**: `129`
-- **Total Class Methods**: `893`
-- **Total Source Lines**: `19699`
+- **Total Python Modules**: `61`
+- **Total Classes**: `105`
+- **Total Top-Level Functions**: `141`
+- **Total Class Methods**: `912`
+- **Total Source Lines**: `20248`
 
 ---
 
@@ -147,7 +147,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4491` lines (`214829` bytes)
+**Size**: `4499` lines (`215318` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -399,7 +399,7 @@
 ### [`cyberpulse/puzzles.py`](cyberpulse/puzzles.py)
 > *Interactive and deterministic cyberpunk hacking mini-game puzzles with near-miss feedback.*
 
-**Size**: `266` lines (`11462` bytes)
+**Size**: `270` lines (`11684` bytes)
 
 **Classes:**
 - `class FrequencyPuzzle` - *Tuning resonance frequency puzzle with near-miss feedback mechanics.*
@@ -433,10 +433,10 @@
 ### [`cyberpulse/rewards.py`](cyberpulse/rewards.py)
 > *Variable-ratio reward engine and dopamine loot schedules for CyberPulse.*
 
-**Size**: `39` lines (`1310` bytes)
+**Size**: `55` lines (`2015` bytes)
 
 **Functions:**
-- `def roll_breach_reward(node, rng)` - *Calculate variable-ratio reward payout and drops (Skinner box reinforcement schedule).*
+- `def roll_breach_reward(node, rng)` - *Calculate variable-magnitude reward payout and drops (Skinner box reinforcement schedule).*
 
 ---
 
@@ -454,7 +454,7 @@
 ### [`cyberpulse/scoring.py`](cyberpulse/scoring.py)
 > *Transparent run scoring for legacy and Hall of Fame rankings.*
 
-**Size**: `39` lines (`1254` bytes)
+**Size**: `52` lines (`1680` bytes)
 
 **Functions:**
 - `def _safe_count(value)` - *Coerce a scoring input to a finite non-negative int; hostile values become 0.*
@@ -614,6 +614,40 @@
 - `def step_hunter(hunter, nodes, player_node_id, rng)` - *Advance the hunter by 1 hop along the network graph towards the player or random neighbor if confused.*
 - `def neutralize_hunter(hunter, reason)` - *Neutralize an active NetWatch hunter.*
 - `def world_summary(world)` - *Serialize the living-grid snapshot for CLI and Web consumers.*
+
+---
+
+### [`scripts/check_odds.py`](scripts/check_odds.py)
+> *Stated-vs-coded odds check for CyberPulse (stdlib only, deterministic).*
+
+**Size**: `133` lines (`4950` bytes)
+
+**Classes:**
+- `class FixedRng` - *Deterministic RNG stub returning a fixed roll.*
+  - Method `.__init__(roll)`
+  - Method `.random()`
+  - Method `.choice(seq)`
+
+**Functions:**
+- `def make_node(base)`
+- `def check_bands()` - *Band mapping: chip below chip_rate, jackpot below chip+jackpot, else standard.*
+- `def check_distribution(n, seed)` - *Empirical frequencies must match stated 10/20/70 within tolerance.*
+- `def check_surge_parity()` - *extraction_risk() preview must equal the mitigated surge jackout applies.*
+- `def check_forecast_parity()` - *Forecasts must derive from the same mitigated_trace() as the actions.*
+- `def main()`
+
+---
+
+### [`scripts/engagement_sim.py`](scripts/engagement_sim.py)
+> *Deterministic scripted play sessions for CyberPulse (stdlib only).*
+
+**Size**: `148` lines (`6309` bytes)
+
+**Functions:**
+- `def reachable_targets(engine)` - *Hosts the runner may legally breach from its current position.*
+- `def run_scripted_session(seed, use_overdrive, use_daemon)` - *Play one gentle deterministic run; return its measurement dict.*
+- `def summarize(seeds)` - *Aggregate scripted sessions into one measurement dict.*
+- `def main(argv)`
 
 ---
 
@@ -987,6 +1021,41 @@
   - Method `.test_normalization_defaults_unknown_values()`
   - Method `.test_trace_multipliers_order_by_difficulty()`
   - Method `.test_contract_multipliers_favor_easy_and_tax_hard()`
+
+---
+
+### [`tests/test_engagement_fairness.py`](tests/test_engagement_fairness.py)
+> *Fairness proofs for the engagement loop: honest odds, capped comebacks, no farms.*
+
+**Size**: `227` lines (`8831` bytes)
+
+**Classes:**
+- `class FixedRng`
+  - Method `.__init__(roll)`
+  - Method `.random()`
+  - Method `.choice(seq)`
+- `class TestRewardBands`
+  - Method `.test_band_edges_match_stated_schedule()`
+  - Method `.test_jackpot_math_is_exact()`
+  - Method `.test_distribution_matches_stated_70_20_10()`
+- `class TestSurgeAndForecastParity`
+  - Method `.test_extraction_preview_equals_applied_surge()`
+  - Method `.test_forecast_costs_match_engine_costs()`
+- `class TestPuzzleSolvability`
+  - Method `.test_tier_curve_is_fair_then_hard()`
+  - Method `.test_near_miss_grants_exactly_one_comeback()`
+- `class TestExploitProbes`
+  - Method `.test_resecured_host_pays_nothing()`
+  - Method `.test_overdrive_is_bounded_by_cpu()`
+  - Method `.test_daemon_plus_lay_low_advances_the_clock()`
+  - Method `.test_worm_chip_is_consumed()`
+- `class TestScriptedSessions`
+  - Method `.test_scripted_run_is_deterministic()`
+  - Method `.test_gentle_runs_settle_without_lockout()`
+
+**Functions:**
+- `def make_node(base)`
+- `def bisect_solve_rate(tier, seeds)` - *Scripted bisection solver over fixed seeds; returns solve fraction.*
 
 ---
 

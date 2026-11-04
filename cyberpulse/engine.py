@@ -266,6 +266,14 @@ class GameEngine:
     FAILURE_TRACE_STACK = 4
     MAX_FAILURE_TRACE = 30
     MAX_RUN_HISTORY = 20
+    # Combo reward schedule (variable-magnitude escalation): +RATE per streak step,
+    # capped at CAP. Single source for preview and breach paths.
+    COMBO_RATE = 0.10
+    COMBO_CAP = 0.50
+    # Background daemon economy (deeper hosts carry richer traffic).
+    DAEMON_BASE_YIELD = 15
+    DAEMON_YIELD_PER_SECURITY = 5
+    DAEMON_DETECTION_RISK = 3
     # Black ICE surge when pulling the jack: a hot connection is a final gamble.
     EXTRACTION_SURGE_BANDS = ((85, 15), (70, 10), (50, 5))
 
@@ -1121,8 +1129,8 @@ class GameEngine:
 
     def combo_rate_preview(self) -> Dict[str, Any]:
         """Return the current and next-breach combo bonus rates (informational only)."""
-        current = min(0.50, 0.10 * max(0, self.state.combo_streak))
-        nxt = min(0.50, 0.10 * (max(0, self.state.combo_streak) + 1))
+        current = min(self.COMBO_CAP, self.COMBO_RATE * max(0, self.state.combo_streak))
+        nxt = min(self.COMBO_CAP, self.COMBO_RATE * (max(0, self.state.combo_streak) + 1))
         return {
             "streak": self.state.combo_streak,
             "current_rate": round(current, 2),
@@ -2873,7 +2881,7 @@ class GameEngine:
             creds_awarded, reward_desc, exploit_drop = roll_breach_reward(node, self.rng)
             self.state.combo_streak += 1
             self.state.best_combo = max(self.state.best_combo, self.state.combo_streak)
-            combo_rate = min(0.50, 0.10 * self.state.combo_streak)
+            combo_rate = min(self.COMBO_CAP, self.COMBO_RATE * self.state.combo_streak)
             combo_bonus = int(creds_awarded * combo_rate)
             self.state.unbanked_creds += creds_awarded + combo_bonus
             node.reward_claimed = True
@@ -3887,14 +3895,14 @@ class GameEngine:
         ]
         daemon_id = f"dmn_{max(existing_ids, default=0) + 1:03d}"
         # Deeper hosts carry richer traffic: siphoning the core pays more than a border router.
-        daemon_yield = 15 + node.security_level * 5
+        daemon_yield = self.DAEMON_BASE_YIELD + node.security_level * self.DAEMON_YIELD_PER_SECURITY
         daemon = MalwareDaemon(
             daemon_id=daemon_id,
             daemon_type=daemon_type,
             target_node_id=node.node_id,
             target_ip=node.ip_address,
             yield_per_turn=daemon_yield,
-            detection_risk=3,
+            detection_risk=self.DAEMON_DETECTION_RISK,
         )
         self.deck.active_daemons.append(daemon)
         adjust_alert(self.state.world, 2)
