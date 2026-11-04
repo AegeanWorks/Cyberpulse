@@ -31,7 +31,7 @@ def roll_breach_reward(node: Node, rng: Optional[random.Random] = None) -> Tuple
 
     # 20% Chance: Critical Jackpot (2.5x payout)
     if roll < 0.30:
-        jackpot = int(base_creds * 2.5)
+        jackpot = base_creds * 5 // 2
         desc = f"★★★ CRITICAL DATA HEIST! 2.5X JACKPOT (+{jackpot} Creds) ★★★"
         return jackpot, desc, None
 

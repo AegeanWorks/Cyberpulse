@@ -1,6 +1,19 @@
 """Transparent run scoring for legacy and Hall of Fame rankings."""
 
+import math
 from typing import Any, Dict
+
+
+def _safe_count(value: Any) -> int:
+    """Coerce a scoring input to a finite non-negative int; hostile values become 0."""
+    try:
+        if isinstance(value, bool):
+            return 0
+        if isinstance(value, float) and not math.isfinite(value):
+            return 0
+        return max(0, int(value))
+    except (TypeError, ValueError, OverflowError):
+        return 0
 
 
 def score_run(
@@ -15,10 +28,10 @@ def score_run(
 ) -> Dict[str, Any]:
     """Return a score and its itemized breakdown for one settled run."""
     breakdown = {
-        "credits": max(0, int(gained)),
-        "combo": max(0, int(best_combo)) * 75,
-        "quests": max(0, int(quests_done)) * 150,
-        "breaches": max(0, int(nodes_breached)) * 25,
+        "credits": _safe_count(gained),
+        "combo": _safe_count(best_combo) * 75,
+        "quests": _safe_count(quests_done) * 150,
+        "breaches": _safe_count(nodes_breached) * 25,
         "contract": 200 if contract_completed else 0,
         "outcome": 500 if outcome == "victory" else (250 if outcome == "jackout" else 0),
         "story": 100 if main_story_complete else 0,
