@@ -326,6 +326,16 @@ class SaveManager:
 
     def list_saves(self) -> List[Dict[str, Any]]:
         """Return metadata for every restorable slot, newest first."""
+        def _safe_int(value: Any, default: int = 0) -> int:
+            try:
+                if isinstance(value, bool):
+                    return default
+                if isinstance(value, float) and not math.isfinite(value):
+                    return default
+                return int(value or default)
+            except (TypeError, ValueError, OverflowError):
+                return default
+
         saves: List[Dict[str, Any]] = []
         for key in SLOT_KEYS:
             if not self._slot_exists(key):
@@ -346,18 +356,22 @@ class SaveManager:
                 path = self.slot_path(key)
                 candidates = [p for p in (path, path.with_suffix(".bak")) if p.exists()]
                 saved_at = max(p.stat().st_mtime for p in candidates) if candidates else 0.0
+            try:
+                saved_display = time.strftime("%Y-%m-%d %H:%M", time.localtime(float(saved_at)))
+            except (OverflowError, OSError, ValueError):
+                saved_display = "--"
             saves.append({
                 "slot": key,
                 "label": self.slot_label(key),
                 "name": self.clean_name(meta.get("name", "")),
                 "kind": "auto" if key == AUTO_SLOT else "manual",
                 "saved_at": float(saved_at),
-                "saved_at_display": time.strftime("%Y-%m-%d %H:%M", time.localtime(float(saved_at))),
-                "turns": int(state.get("turns_elapsed", 0) or 0),
-                "creds": int(deck.get("cryptocreds", 0) or 0),
-                "trace": int(state.get("trace_percent", 0) or 0),
-                "act": int(state.get("story_act", 1) or 1),
-                "seed": int(data.get("seed", 0) or 0),
+                "saved_at_display": saved_display,
+                "turns": _safe_int(state.get("turns_elapsed", 0)),
+                "creds": _safe_int(deck.get("cryptocreds", 0)),
+                "trace": _safe_int(state.get("trace_percent", 0)),
+                "act": _safe_int(state.get("story_act", 1), default=1),
+                "seed": _safe_int(data.get("seed", 0)),
                 "terminal": bool(
                     state.get("is_victory") or state.get("is_game_over") or state.get("is_jacked_out")
                 ),
