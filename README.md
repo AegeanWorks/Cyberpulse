@@ -99,6 +99,7 @@ cyberpulse/
     ├── test_server.py
     ├── test_shop.py
     ├── test_sim_life.py
+    ├── test_stage3_fixes.py
     ├── test_storage.py
     ├── test_tutorial.py
     ├── test_version.py
