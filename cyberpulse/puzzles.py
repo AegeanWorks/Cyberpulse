@@ -1,5 +1,6 @@
 """Interactive and deterministic cyberpunk hacking mini-game puzzles with near-miss feedback."""
 
+import math
 import random
 from typing import List, Optional, Tuple
 
@@ -45,10 +46,25 @@ class FrequencyPuzzle:
 
     @classmethod
     def from_dict(cls, data: dict) -> "FrequencyPuzzle":
-        puzzle = cls(target_freq=float(data["target_freq"]), tolerance=float(data["tolerance"]),
-                     min_freq=float(data.get("min_freq", 20.0)),
-                     max_freq=float(data.get("max_freq", 99.0)))
-        puzzle.attempts_left = int(data.get("attempts_left", puzzle.attempts_left))
+        if not isinstance(data, dict):
+            raise ValueError("frequency puzzle payload must be an object")
+        try:
+            target = float(data["target_freq"])
+            tolerance = float(data["tolerance"])
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("frequency puzzle payload is corrupt") from exc
+        if not math.isfinite(target) or not math.isfinite(tolerance):
+            raise ValueError("frequency puzzle payload is corrupt")
+        try:
+            puzzle = cls(target_freq=target, tolerance=tolerance,
+                         min_freq=float(data.get("min_freq", 20.0)),
+                         max_freq=float(data.get("max_freq", 99.0)))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("frequency puzzle payload is corrupt") from exc
+        try:
+            puzzle.attempts_left = int(data.get("attempts_left", puzzle.attempts_left))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("frequency puzzle payload is corrupt") from exc
         puzzle.near_miss = bool(data.get("near_miss", False))
         puzzle.near_miss_awarded = bool(data.get("near_miss_awarded", False))
         return puzzle
@@ -117,7 +133,18 @@ class BufferPuzzle:
 
     @classmethod
     def from_dict(cls, data: dict) -> "BufferPuzzle":
-        puzzle = cls(matrix=data["matrix"], target_seq=list(data["target_seq"]))
+        if not isinstance(data, dict):
+            raise ValueError("buffer puzzle payload must be an object")
+        matrix = data.get("matrix")
+        target = data.get("target_seq")
+        if (not isinstance(matrix, list) or not matrix
+                or any(not isinstance(row, list) or not row
+                       or any(not isinstance(cell, str) for cell in row) for row in matrix)):
+            raise ValueError("buffer puzzle payload is corrupt")
+        if (not isinstance(target, list) or not target
+                or any(not isinstance(cell, str) for cell in target)):
+            raise ValueError("buffer puzzle payload is corrupt")
+        puzzle = cls(matrix=[list(row) for row in matrix], target_seq=list(target))
         puzzle.near_miss = bool(data.get("near_miss", False))
         puzzle.near_miss_awarded = bool(data.get("near_miss_awarded", False))
         return puzzle
@@ -174,8 +201,20 @@ class HashCrackPuzzle:
 
     @classmethod
     def from_dict(cls, data: dict) -> "HashCrackPuzzle":
-        puzzle = cls(target_word=data["target_word"], word_list=list(data["word_list"]))
-        puzzle.attempts_left = int(data.get("attempts_left", puzzle.attempts_left))
+        if not isinstance(data, dict):
+            raise ValueError("hash puzzle payload must be an object")
+        target = data.get("target_word")
+        words = data.get("word_list")
+        if not isinstance(target, str) or not target:
+            raise ValueError("hash puzzle payload is corrupt")
+        if (not isinstance(words, list) or not words
+                or any(not isinstance(w, str) or not w for w in words)):
+            raise ValueError("hash puzzle payload is corrupt")
+        puzzle = cls(target_word=target, word_list=list(words))
+        try:
+            puzzle.attempts_left = int(data.get("attempts_left", puzzle.attempts_left))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("hash puzzle payload is corrupt") from exc
         puzzle.near_miss = bool(data.get("near_miss", False))
         puzzle.near_miss_awarded = bool(data.get("near_miss_awarded", False))
         return puzzle
@@ -223,5 +262,5 @@ def puzzle_from_dict(data: dict) -> Optional[object]:
         return None
     try:
         return factory.from_dict(data)
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
         return None
