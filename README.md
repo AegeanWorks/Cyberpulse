@@ -81,6 +81,10 @@ cyberpulse/
     ├── __init__.py
     ├── test_achievements.py
     ├── test_arc_mechanics.py
+    ├── test_batch1_server.py
+    ├── test_batch2_economy.py
+    ├── test_batch3_world.py
+    ├── test_batch4_cli.py
     ├── test_cli.py
     ├── test_daily.py
     ├── test_deckos_arcs.py
@@ -173,7 +177,7 @@ python -m cyberpulse.cli --daily
 
 ### In-Game Commands (Authentic Simulation & Tactical Netrunning)
 
-The full reference of 56 commands, with each one's action and simulation role, is in [COMMANDS.md](COMMANDS.md).
+The full reference of 62 commands, with each one's action and simulation role, is in [COMMANDS.md](COMMANDS.md).
 
 ### 🕹️ Authentic Cyber Warfare Infiltration Workflow
 1. **Network Reconnaissance**: Discover network topology with `scan` or read host configuration files with `cat /etc/hosts`. Scan active network ports using `probe 192.168.1.10`.
@@ -189,7 +193,7 @@ The full reference of 56 commands, with each one's action and simulation role, i
 
 ## 🛡️ Architecture & Guarantees
 
-- **Zero Undeclared Dependencies**: Built with 100% pure Python standard library modules (`random`, `json`, `dataclasses`, `pathlib`, `argparse`).
+- **Zero Undeclared Dependencies**: Built with 100% pure Python standard library modules (`argparse`, `collections`, `dataclasses`, `datetime`, `hashlib`, `http.server`, `json`, `math`, `mimetypes`, `os`, `pathlib`, `random`, `shutil`, `sys`, `tempfile`, `threading`, `time`, `uuid`).
 - **Deterministic State Engine**: Every network grid and puzzle sequence can be reproduced using `--seed <int>`.
 - **Seeded Side-Subnet Layer**: The seven-host campaign spine (gateway, proxies, vaults, Black ICE, supercore) is fixed so story targets stay honest, while every seed grows two or three extra `DATA_VAULT` hosts beside it. Template, security level, puzzle type, payout, trace rate and anchors vary, so scans, routes, loot and contract targets differ between runs; the Web matrix places them in three reserved slots with their real names.
 - **Cross-Interface Save Slots**: Both interfaces use the terminal's atomic `SaveManager` across three manual slots plus a separate autosave file. Slot 1 remains the legacy `savegame.json`, so existing saves keep loading; the slot archive lists a run label, turn, credits, trace, act and timestamp for each checkpoint, and **CONTINUE RUN** restores any of them in either interface.

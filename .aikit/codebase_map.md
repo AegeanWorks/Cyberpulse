@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `49`
-- **Total Classes**: `86`
-- **Total Top-Level Functions**: `122`
-- **Total Class Methods**: `841`
-- **Total Source Lines**: `18954`
+- **Total Python Modules**: `53`
+- **Total Classes**: `92`
+- **Total Top-Level Functions**: `127`
+- **Total Class Methods**: `871`
+- **Total Source Lines**: `19327`
 
 ---
 
@@ -60,7 +60,7 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1623` lines (`76231` bytes)
+**Size**: `1629` lines (`76422` bytes)
 
 **Functions:**
 - `def print_deckos(engine)`
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4487` lines (`214564` bytes)
+**Size**: `4489` lines (`214741` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -257,7 +257,7 @@
   - Method `.list_files(target_query)` - *List files (ls) on target host's virtual filesystem (requires host to be breached).*
   - Method `.read_file(target_query, file_path)` - *Read file contents (cat) on breached host.*
   - Method `.download_file(target_query, file_path)` - *Download / steal data file from breached host (yields unbanked credits and fulfills bounties).*
-  - Method `.wipe_logs(target_query)` - *Clear access logs (wipe_logs) on target host to reduce active trace by 20% and fulfill clean escape clauses.*
+  - Method `.wipe_logs(target_query)` - *Clear access logs (wipe_logs) on target host to reduce active trace by 20% (25% with Archivist trust 4+) and fulfill clean escape clauses.*
   - Method `.tick_daemons()` - *Process active background malware daemons (e.g. keyloggers) and host antivirus sweeps.*
   - Method `.deploy_daemon(target_query, daemon_type)` - *Deploy an in-game background malware listener daemon onto a breached host.*
   - Method `.list_local_files()` - *List files (ls) stored on player's local cyberdeck rig (localhost).*
@@ -432,7 +432,7 @@
 ### [`cyberpulse/rewards.py`](cyberpulse/rewards.py)
 > *Variable-ratio reward engine and dopamine loot schedules for CyberPulse.*
 
-**Size**: `39` lines (`1312` bytes)
+**Size**: `39` lines (`1310` bytes)
 
 **Functions:**
 - `def roll_breach_reward(node, rng)` - *Calculate variable-ratio reward payout and drops (Skinner box reinforcement schedule).*
@@ -453,9 +453,10 @@
 ### [`cyberpulse/scoring.py`](cyberpulse/scoring.py)
 > *Transparent run scoring for legacy and Hall of Fame rankings.*
 
-**Size**: `26` lines (`861` bytes)
+**Size**: `39` lines (`1254` bytes)
 
 **Functions:**
+- `def _safe_count(value)` - *Coerce a scoring input to a finite non-negative int; hostile values become 0.*
 - `def score_run(*, gained, best_combo, quests_done, nodes_breached, outcome, contract_completed, main_story_complete)` - *Return a score and its itemized breakdown for one settled run.*
 
 ---
@@ -463,7 +464,7 @@
 ### [`cyberpulse/server.py`](cyberpulse/server.py)
 > *Zero-dependency HTTP REST backend and static file server for CyberPulse Web Cyberdeck.*
 
-**Size**: `1045` lines (`46916` bytes)
+**Size**: `1072` lines (`48315` bytes)
 
 **Classes:**
 - `class CyberdeckSession` - *Encapsulates the stateful game session driving the Web Cyberdeck interface.*
@@ -489,6 +490,7 @@
 
 **Functions:**
 - `def coerce_seed(value)` - *Convert API/CLI seed input to an integer, rejecting non-finite or non-numeric values.*
+- `def strict_int(value, field)` - *Parse an integer payload strictly, rejecting bools, floats, and non-integer strings.*
 - `def create_server(host, port, data_dir, seed, daily_key, difficulty, daily_modifier, allegiance)` - *Instantiate and configure the ThreadingHTTPServer for CyberPulse Web Cyberdeck.*
 - `def run_web(host, port, data_dir, seed, open_browser, daily_key, difficulty, daily_modifier, allegiance)` - *Launch the Web Cyberdeck server and optionally launch default system web browser.*
 
@@ -576,7 +578,7 @@
 ### [`cyberpulse/world.py`](cyberpulse/world.py)
 > *Living-grid world simulation: in-game clock, corporate alert, news, and grid response.*
 
-**Size**: `558` lines (`18934` bytes)
+**Size**: `561` lines (`19085` bytes)
 
 **Classes:**
 - `class ShiftProfile` - *Tactical posture of the grid during one in-game shift.*
@@ -704,6 +706,87 @@
 
 **Functions:**
 - `def _quiet(engine)` - *Neutralize ambient/rival randomness for deterministic tick assertions.*
+
+---
+
+### [`tests/test_batch1_server.py`](tests/test_batch1_server.py)
+> *Batch 1 server hardening regression tests.*
+
+**Size**: `113` lines (`4190` bytes)
+
+**Classes:**
+- `class TestServerHardeningUnit`
+  - Method `.test_coerce_seed_rejects_bool()`
+  - Method `.test_strict_int_accepts_int_and_int_string()`
+  - Method `.test_strict_int_rejects_float_bool_and_garbage()`
+  - Method `.test_lay_low_rejects_float_and_bool()`
+  - Method `.test_load_run_refuses_terminal_slot()`
+- `class TestServerHardeningLive`
+  - Method `.setUpClass()`
+  - Method `.tearDownClass()`
+  - Method `.test_post_rejects_non_json_content_type()`
+  - Method `.test_post_float_port_rejected()`
+  - Method `.test_post_bool_seed_rejected()`
+  - Method `.test_unknown_api_returns_404_json()`
+
+---
+
+### [`tests/test_batch2_economy.py`](tests/test_batch2_economy.py)
+> *Batch 2 economy/math guard regression tests.*
+
+**Size**: `53` lines (`1621` bytes)
+
+**Classes:**
+- `class FakeRNG`
+  - Method `.__init__(roll)`
+  - Method `.random()`
+  - Method `.choice(seq)`
+- `class TestEconomyGuards`
+  - Method `.test_score_run_clamps_nonfinite()`
+  - Method `.test_score_run_truncates_float()`
+  - Method `.test_jackpot_uses_integer_math()`
+
+**Functions:**
+- `def _node(credits)`
+
+---
+
+### [`tests/test_batch3_world.py`](tests/test_batch3_world.py)
+> *Batch 3 world fairness regression tests.*
+
+**Size**: `65` lines (`2190` bytes)
+
+**Classes:**
+- `class TestWorldFairness`
+  - Method `.test_tier_rank_rejects_unknown()`
+  - Method `.test_confused_hunter_ignores_dangling_neighbor()`
+  - Method `.test_resecure_order_is_fair()`
+  - Method `.test_deploy_hunter_sorted_spawn()`
+
+**Functions:**
+- `def _node(nid, status, sec, breached_turn)`
+
+---
+
+### [`tests/test_batch4_cli.py`](tests/test_batch4_cli.py)
+> *Batch 4 CLI dispatch regression tests.*
+
+**Size**: `91` lines (`3475` bytes)
+
+**Classes:**
+- `class TestCLIDispatch`
+  - Method `.setUp()`
+  - Method `.tearDown()`
+  - Method `.test_ps_shows_deckos_not_daemons()`
+  - Method `.test_daemons_shows_daemons()`
+  - Method `.test_buy_case_insensitive()`
+  - Method `.test_buy_exploit_not_recorded_as_rig()`
+  - Method `.test_menu_message_lists_1_through_7()`
+  - Method `.test_batch_jackout_continues_pinned()`
+  - Method `.test_replay_keeps_difficulty_and_allegiance()`
+
+**Functions:**
+- `def _run(engine, mgr, cmd, **kw)`
 
 ---
 

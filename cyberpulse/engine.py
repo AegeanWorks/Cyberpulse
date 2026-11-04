@@ -3738,7 +3738,7 @@ class GameEngine:
         return True, msg, vfile
 
     def wipe_logs(self, target_query: str) -> Tuple[bool, str]:
-        """Clear access logs (wipe_logs) on target host to reduce active trace by 20% and fulfill clean escape clauses."""
+        """Clear access logs (wipe_logs) on target host to reduce active trace by 20% (25% with Archivist trust 4+) and fulfill clean escape clauses."""
         if self.state.is_game_over:
             return False, "Cannot wipe logs: system lockout in effect."
         if self.state.is_jacked_out:
