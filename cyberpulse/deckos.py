@@ -89,6 +89,13 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
 
 def kill_process(engine: Any, pid: int) -> Tuple[bool, str]:
     """Terminate a killable DeckOS process. Rogue miners free CPU; daemons are recalled."""
+    if isinstance(pid, bool):
+        return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
+    if isinstance(pid, float):
+        return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
+    if isinstance(pid, str):
+        if not pid.strip().lstrip("+-").isdigit():
+            return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
     try:
         wanted = int(pid)
     except (TypeError, ValueError):
@@ -135,8 +142,12 @@ def record_history(engine: Any, cmd_line: str) -> None:
     if hist is None:
         hist = []
         state.cmd_history = hist
+    if isinstance(hist, str):
+        hist = [hist]
+        state.cmd_history = hist
     if not isinstance(hist, list):
-        return
+        hist = []
+        state.cmd_history = hist
     text = str(cmd_line).strip()[:160]
     if text:
         hist.append(text)

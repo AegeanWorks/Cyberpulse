@@ -114,19 +114,31 @@ DISTRICTS = (
 
 def arc_stage(contact_id: str, trust: int) -> int:
     """Return how many arc stages (0-3) a trust value unlocks."""
+    try:
+        trust_value = int(trust)
+    except (TypeError, ValueError):
+        return 0
+    if isinstance(trust, bool):
+        return 0
     stages = ARC_DEFS.get(contact_id, {}).get("stages", ())
     reached = 0
     for stage in stages:
-        if int(trust) >= int(stage.get("trust", 99)):
+        if trust_value >= int(stage.get("trust", 99)):
             reached += 1
     return reached
 
 
 def stage_info(contact_id: str, stage: int) -> Dict[str, Any]:
     """Return the label/text/bonus of an arc stage (stage 1-3)."""
+    try:
+        if isinstance(stage, bool):
+            return {"label": "", "text": "", "bonus": ""}
+        wanted = int(stage)
+    except (TypeError, ValueError):
+        return {"label": "", "text": "", "bonus": ""}
     stages = ARC_DEFS.get(contact_id, {}).get("stages", ())
-    if 1 <= int(stage) <= len(stages):
-        info = stages[int(stage) - 1]
+    if 1 <= wanted <= len(stages):
+        info = stages[wanted - 1]
         return {"label": info.get("label", ""), "text": info.get("text", ""),
                 "bonus": info.get("bonus", "")}
     return {"label": "", "text": "", "bonus": ""}

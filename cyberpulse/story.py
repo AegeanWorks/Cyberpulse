@@ -261,14 +261,28 @@ def act_title(act: int) -> Tuple[str, str]:
     return STORY_ACTS.get(act, ("EPILOGUE", "The Sprawl Remembers"))
 
 
+CONTACT_UNLOCK_ACT: Dict[str, int] = {
+    "mira": 1,
+    "kilo": 1,
+    "archivist": 2,
+    "zero": 3,
+}
+
+
 def dialogue_for(contact_id: str, act: int, choice: str = "") -> str:
     if choice:
         choice_line = CHOICE_DIALOGUE.get((contact_id, choice, act))
         if choice_line:
             return choice_line
+    try:
+        act_num = int(act)
+    except (TypeError, ValueError):
+        act_num = 1
+    if act_num < CONTACT_UNLOCK_ACT.get(contact_id, 1):
+        return "The channel is quiet. Earn access to this operative."
     lines = CONTACT_DIALOGUE.get(contact_id, {})
-    if act in lines:
-        return lines[act]
+    if act_num in lines:
+        return lines[act_num]
     if lines:
         return lines[max(lines)]
     return "The channel is silent."

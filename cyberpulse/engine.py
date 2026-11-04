@@ -437,6 +437,8 @@ class GameEngine:
                 if node.status == NodeStatus.BREACHED and node.node_type == quest.target
             )
         if quest.objective == "steal_file":
+            if not quest.target:
+                return len(self.state.looted_payloads)
             return 1 if quest.target in self.state.looted_payloads else 0
         if quest.objective == "wipe_logs":
             node = self.find_node(quest.target)
