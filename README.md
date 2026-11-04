@@ -85,6 +85,10 @@ cyberpulse/
     ├── test_batch2_economy.py
     ├── test_batch3_world.py
     ├── test_batch4_cli.py
+    ├── test_batch6_deckos.py
+    ├── test_batch7_puzzles.py
+    ├── test_batch8_storage.py
+    ├── test_batch9_cli.py
     ├── test_cli.py
     ├── test_daily.py
     ├── test_deckos_arcs.py

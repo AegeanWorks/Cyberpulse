@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `53`
-- **Total Classes**: `92`
-- **Total Top-Level Functions**: `127`
-- **Total Class Methods**: `871`
-- **Total Source Lines**: `19327`
+- **Total Python Modules**: `57`
+- **Total Classes**: `97`
+- **Total Top-Level Functions**: `128`
+- **Total Class Methods**: `888`
+- **Total Source Lines**: `19647`
 
 ---
 
@@ -42,7 +42,7 @@
 ### [`cyberpulse/arcs.py`](cyberpulse/arcs.py)
 > *Operative loyalty arcs + district grid simulation (additive, save-compatible).*
 
-**Size**: `254` lines (`10672` bytes)
+**Size**: `266` lines (`11030` bytes)
 
 **Functions:**
 - `def arc_stage(contact_id, trust)` - *Return how many arc stages (0-3) a trust value unlocks.*
@@ -60,7 +60,7 @@
 ### [`cyberpulse/cli.py`](cyberpulse/cli.py)
 > *Interactive and scriptable retro-cyberpunk terminal CLI for CyberPulse with behavioral mechanics.*
 
-**Size**: `1629` lines (`76422` bytes)
+**Size**: `1632` lines (`76664` bytes)
 
 **Functions:**
 - `def print_deckos(engine)`
@@ -119,7 +119,7 @@
 ### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
 > *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
 
-**Size**: `159` lines (`6730` bytes)
+**Size**: `170` lines (`7218` bytes)
 
 **Functions:**
 - `def _rogue_present(seed, turn, alert)` - *A rogue miner squats on the deck when the grid is hot (deterministic).*
@@ -146,7 +146,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4489` lines (`214741` bytes)
+**Size**: `4491` lines (`214829` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -398,7 +398,7 @@
 ### [`cyberpulse/puzzles.py`](cyberpulse/puzzles.py)
 > *Interactive and deterministic cyberpunk hacking mini-game puzzles with near-miss feedback.*
 
-**Size**: `227` lines (`9364` bytes)
+**Size**: `266` lines (`11462` bytes)
 
 **Classes:**
 - `class FrequencyPuzzle` - *Tuning resonance frequency puzzle with near-miss feedback mechanics.*
@@ -514,7 +514,7 @@
 ### [`cyberpulse/storage.py`](cyberpulse/storage.py)
 > *Crash-resilient savegame and career profile storage engine for CyberPulse.*
 
-**Size**: `425` lines (`18735` bytes)
+**Size**: `439` lines (`19309` bytes)
 
 **Classes:**
 - `class SaveManager` - *Manages atomic saving and loading of game states and career profiles.*
@@ -554,7 +554,7 @@
 ### [`cyberpulse/story.py`](cyberpulse/story.py)
 > *Story acts, quest blueprints, and operative dialogue for CyberPulse.*
 
-**Size**: `310` lines (`12460` bytes)
+**Size**: `324` lines (`12794` bytes)
 
 **Functions:**
 - `def initial_quests()` - *Return the persistent quest board for a new run.*
@@ -787,6 +787,67 @@
 
 **Functions:**
 - `def _run(engine, mgr, cmd, **kw)`
+
+---
+
+### [`tests/test_batch6_deckos.py`](tests/test_batch6_deckos.py)
+> *Batch 6 DeckOS/arcs/story regression tests.*
+
+**Size**: `70` lines (`2874` bytes)
+
+**Classes:**
+- `class FakeEngine`
+  - Method `.__init__()`
+- `class TestBatch6`
+  - Method `.test_kill_rejects_float_and_bool_pid()`
+  - Method `.test_history_repairs_corrupt_shape()`
+  - Method `.test_arc_stage_rejects_non_numeric()`
+  - Method `.test_locked_contact_dialogue_no_spoiler()`
+  - Method `.test_cold_wallet_reconcile_after_prior_loot()`
+
+---
+
+### [`tests/test_batch7_puzzles.py`](tests/test_batch7_puzzles.py)
+> *Batch 7 puzzle deserialization regression tests.*
+
+**Size**: `52` lines (`2426` bytes)
+
+**Classes:**
+- `class TestPuzzleHardening`
+  - Method `.test_frequency_rejects_nonfinite()`
+  - Method `.test_buffer_rejects_malformed()`
+  - Method `.test_hash_rejects_malformed()`
+  - Method `.test_round_trip_survives()`
+
+---
+
+### [`tests/test_batch8_storage.py`](tests/test_batch8_storage.py)
+> *Batch 8 persistence regression tests.*
+
+**Size**: `56` lines (`2084` bytes)
+
+**Classes:**
+- `class TestPersistenceHardening`
+  - Method `.test_list_saves_survives_hostile_numerics()`
+  - Method `.test_delete_run_leaves_unowned_same_run()`
+  - Method `.test_delete_run_leaves_other_runs()`
+
+---
+
+### [`tests/test_batch9_cli.py`](tests/test_batch9_cli.py)
+> *Batch 9 CLI parity regression tests.*
+
+**Size**: `47` lines (`1414` bytes)
+
+**Classes:**
+- `class TestCLIParity`
+  - Method `.setUp()`
+  - Method `.tearDown()`
+  - Method `.test_load_refuses_finished_checkpoint()`
+  - Method `.test_reset_career_rejects_trailing_junk()`
+
+**Functions:**
+- `def _run(engine, mgr, cmd)`
 
 ---
 
