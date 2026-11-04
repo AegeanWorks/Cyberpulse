@@ -41,7 +41,7 @@ def tier_rank(tier: str) -> int:
     try:
         return TIER_ORDER.index(str(tier))
     except ValueError:
-        return 0
+        return -1
 
 
 @dataclass(frozen=True)
@@ -350,9 +350,9 @@ def plan_resecures(
         return []
     rng = world_rng(seed, tick, "response")
     picks: List[str] = []
-    for node in sorted(nodes.values(), key=lambda n: n.node_id):
-        if len(picks) >= RESECURE_MAX_PER_TURN:
-            break
+    order = sorted(nodes.values(), key=lambda n: n.node_id)
+    hits: List[str] = []
+    for node in order:
         if node.status != NodeStatus.BREACHED or node.node_id == current_node_id:
             continue
         if node.node_type == NodeType.CENTRAL_CORE:
@@ -362,8 +362,10 @@ def plan_resecures(
         chance = 0.10 + (alert_level - RESECURE_ALERT_THRESHOLD) / 200.0 + node.security_level * 0.03
         chance = clamp(chance + float(chance_delta), 0.01, 0.60)
         if rng.random() < chance:
-            picks.append(node.node_id)
-    return picks
+            hits.append(node.node_id)
+    if hits:
+        picks.append(rng.choice(hits) if len(hits) > 1 else hits[0])
+    return picks[:RESECURE_MAX_PER_TURN]
 
 
 def apply_resecure(node: Node) -> str:
@@ -428,7 +430,7 @@ def deploy_hunter(world: WorldState, nodes: Dict[str, Node], tick: int) -> Optio
             return None
 
     spawn_id = ""
-    for nid, node in nodes.items():
+    for nid, node in sorted(nodes.items()):
         if node.node_type == NodeType.CENTRAL_CORE:
             spawn_id = nid
             break
@@ -476,9 +478,10 @@ def step_hunter(
         hunter.confused_turns -= 1
         curr = nodes.get(hunter.current_node_id)
         if curr and curr.connected_ids:
-            candidates = sorted(curr.connected_ids)
-            next_node = rng.choice(candidates)
-            hunter.current_node_id = next_node
+            candidates = sorted(n for n in curr.connected_ids if n in nodes)
+            if candidates:
+                next_node = rng.choice(candidates)
+                hunter.current_node_id = next_node
         hunter.turns_active += 1
         if hunter.confused_turns == 0 and hunter.status == "confused":
             hunter.status = "hunting"
