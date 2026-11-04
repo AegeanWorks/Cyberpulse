@@ -6,6 +6,20 @@ rogue-miner spawns derive from (seed, turn) so saves and replays stay stable.
 
 from typing import Any, Dict, List, Tuple
 
+import math
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Coerce a DeckOS numeric to a finite int; hostile values become default."""
+    try:
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, float) and not math.isfinite(value):
+            return default
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+
 BASE_PROCESSES = (
     ("init", "deck init", "system"),
     ("netstack", "mesh routing + proxy hops", "system"),
@@ -17,18 +31,18 @@ BASE_PROCESSES = (
 
 def _rogue_present(seed: int, turn: int, alert: int) -> bool:
     """A rogue miner squats on the deck when the grid is hot (deterministic)."""
-    if alert < 40:
+    if _safe_int(alert) < 40:
         return False
-    return ((int(seed) + int(turn) * 7) % 5) == 0
+    return ((_safe_int(seed) + _safe_int(turn) * 7) % 5) == 0
 
 
 def list_processes(engine: Any) -> List[Dict[str, Any]]:
     """Build the DeckOS process table from live engine state."""
     state = engine.state
     deck = engine.deck
-    turn = int(getattr(state, "turns_elapsed", 0))
-    seed = int(getattr(engine, "seed", 0))
-    alert = int(getattr(state.world, "alert_level", 0)) if hasattr(state, "world") else 0
+    turn = _safe_int(getattr(state, "turns_elapsed", 0))
+    seed = _safe_int(getattr(engine, "seed", 0))
+    alert = _safe_int(getattr(state.world, "alert_level", 0)) if hasattr(state, "world") else 0
     procs: List[Dict[str, Any]] = []
     pid = 1
     for name, desc, owner in BASE_PROCESSES:
@@ -63,11 +77,11 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
     state = engine.state
     deck = engine.deck
     world = getattr(state, "world", None)
-    turn = int(getattr(state, "turns_elapsed", 0))
+    turn = _safe_int(getattr(state, "turns_elapsed", 0))
     minutes_total = turn * 15
     uptime = f"{minutes_total // 60}h {minutes_total % 60:02d}m ({turn} turns)"
-    max_cpu = int(getattr(deck, "max_cpu", 0))
-    cpu = int(getattr(deck, "cpu_cycles", 0))
+    max_cpu = _safe_int(getattr(deck, "max_cpu", 0))
+    cpu = _safe_int(getattr(deck, "cpu_cycles", 0))
     procs = list_processes(engine)
     load = sum(int(p.get("cpu", 0)) for p in procs)
     return {
@@ -75,15 +89,15 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
         "ip": getattr(deck, "local_ip", "10.99.0.2"),
         "cpu": f"{cpu}/{max_cpu}",
         "cpu_free": max(0, max_cpu - cpu),
-        "trace": int(getattr(state, "trace_percent", 0)),
-        "alert": int(getattr(world, "alert_level", 0)) if world else 0,
+        "trace": _safe_int(getattr(state, "trace_percent", 0)),
+        "alert": _safe_int(getattr(world, "alert_level", 0)) if world else 0,
         "uptime": uptime,
         "turns": turn,
         "processes": len(procs),
         "load": load,
-        "ram_mb": int(getattr(deck, "max_ram", getattr(deck, "ram_mb", 256))),
-        "banked": int(getattr(deck, "cryptocreds", 0)),
-        "unbanked": int(getattr(state, "unbanked_creds", 0)),
+        "ram_mb": _safe_int(getattr(deck, "max_ram", getattr(deck, "ram_mb", 256)), default=256),
+        "banked": _safe_int(getattr(deck, "cryptocreds", 0)),
+        "unbanked": _safe_int(getattr(state, "unbanked_creds", 0)),
     }
 
 
@@ -165,6 +179,6 @@ def recent_history(engine: Any, limit: int = 10) -> List[str]:
         return []
     try:
         limit = max(1, min(50, int(limit)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         limit = 10
     return hist[-limit:]

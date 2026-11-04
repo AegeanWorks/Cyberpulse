@@ -1,54 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "audit-waves-0-30",
+    "task_id": "delta-review-23",
     "last_phase": "phase 4",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793722247.632507,
-    "owner": "kilo:1",
-    "started_by": "kilo:1",
+    "updated_at": 1793796587.2341754,
+    "owner": "kilo:2",
+    "started_by": "kilo:2",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "mech-balance-pass1",
-      "phase": "phase 2",
-      "phase_num": 2,
-      "description": "[1/4] Mechanics: action forecasts + risk clarity, no number changes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793565817.236363,
-      "timestamp_str": "2026-11-01 23:43:37",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "costs hidden, combo value-at-risk unclear, trace danger feedback weak",
-        "benefits": "informed tactics, fewer blind burns, same tuned numbers",
-        "risks": "contract: no balance numbers change; dependency: zero-dep; concurrency: forecast is pure/no locks; state: no new persisted fields",
-        "mitigation": "forecast read-only, additive endpoint/CLI cmd, failing-first tests for new API, full suite + check"
-      }
-    },
-    {
-      "task_id": "mech-balance-pass1",
-      "phase": "phase 4",
-      "phase_num": 4,
-      "description": "[4/4] Forecasts + risk clarity done, 463 tests OK, check 5/5 passed, checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793566006.4368994,
-      "timestamp_str": "2026-11-01 23:46:46",
-      "agent": "kilo:1"
-    },
-    {
-      "task_id": "mech-balance-pass1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'mech-balance-pass1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793566006.7683983,
-      "timestamp_str": "2026-11-01 23:46:46",
-      "agent": "kilo:1"
-    },
     {
       "task_id": "center-ip-ui",
       "phase": "phase 2",
@@ -267,6 +229,46 @@
       "timestamp": 1793722247.632507,
       "timestamp_str": "2026-11-03 19:10:47",
       "agent": "kilo:1"
+    },
+    {
+      "task_id": "delta-review-23",
+      "phase": "phase 2",
+      "phase_num": 2,
+      "description": "[1/3] Delta-review 23-commit stack origin/master..HEAD: survey subjects+diffstat, verify each finding at HEAD, fix only proven defects failing-first",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793796430.2794878,
+      "timestamp_str": "2026-11-04 15:47:10",
+      "agent": "kilo:2",
+      "impact_assessment": {
+        "why": "Unpushed stack adds DeckOS/arcs/districts plus hardening batches; prior audit honored empty catalog but new code adds crash surfaces and Web panels",
+        "benefits": "Catch surviving faults before push, keep 610 tests and 5/5 gates green",
+        "risks": "contract: additive hardening only, no balance changes; dependency: zero-dep stdlib only; concurrency: single-threaded engine, JS single-thread; state: no save schema change, additive UI only",
+        "mitigation": "Failing-first repro for each fix, full suite plus aikit check after every fix, explicit staging, no push"
+      },
+      "plan_digest": "dd7c2c02a89d90b3db99a10be117cc920fe905b0b51ca574e3cf06734df04bb3"
+    },
+    {
+      "task_id": "audit-waves-0-30",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'delta-review-23' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793796430.2794878,
+      "timestamp_str": "2026-11-04 15:47:10",
+      "agent": "kilo:2",
+      "continued_from": "kilo:1"
+    },
+    {
+      "task_id": "delta-review-23",
+      "phase": "phase 4",
+      "phase_num": 4,
+      "description": "[3/3] Delta-23 fixes done: ARCS var typo, Kilo live, DeckOS proc count, hostile-int hardening in arcs/deckos; 615 tests OK, check 5/5 passed, checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793796587.2341754,
+      "timestamp_str": "2026-11-04 15:49:47",
+      "agent": "kilo:2"
     }
   ]
 }

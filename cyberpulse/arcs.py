@@ -116,7 +116,7 @@ def arc_stage(contact_id: str, trust: int) -> int:
     """Return how many arc stages (0-3) a trust value unlocks."""
     try:
         trust_value = int(trust)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
     if isinstance(trust, bool):
         return 0
@@ -134,7 +134,7 @@ def stage_info(contact_id: str, stage: int) -> Dict[str, Any]:
         if isinstance(stage, bool):
             return {"label": "", "text": "", "bonus": ""}
         wanted = int(stage)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return {"label": "", "text": "", "bonus": ""}
     stages = ARC_DEFS.get(contact_id, {}).get("stages", ())
     if 1 <= wanted <= len(stages):

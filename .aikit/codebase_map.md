@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `57`
-- **Total Classes**: `97`
-- **Total Top-Level Functions**: `128`
-- **Total Class Methods**: `888`
-- **Total Source Lines**: `19647`
+- **Total Python Modules**: `58`
+- **Total Classes**: `98`
+- **Total Top-Level Functions**: `129`
+- **Total Class Methods**: `893`
+- **Total Source Lines**: `19699`
 
 ---
 
@@ -42,7 +42,7 @@
 ### [`cyberpulse/arcs.py`](cyberpulse/arcs.py)
 > *Operative loyalty arcs + district grid simulation (additive, save-compatible).*
 
-**Size**: `266` lines (`11030` bytes)
+**Size**: `266` lines (`11060` bytes)
 
 **Functions:**
 - `def arc_stage(contact_id, trust)` - *Return how many arc stages (0-3) a trust value unlocks.*
@@ -119,9 +119,10 @@
 ### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
 > *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
 
-**Size**: `170` lines (`7218` bytes)
+**Size**: `184` lines (`7749` bytes)
 
 **Functions:**
+- `def _safe_int(value, default)` - *Coerce a DeckOS numeric to a finite int; hostile values become default.*
 - `def _rogue_present(seed, turn, alert)` - *A rogue miner squats on the deck when the grid is hot (deterministic).*
 - `def list_processes(engine)` - *Build the DeckOS process table from live engine state.*
 - `def sysinfo(engine)` - *Snapshot of the deck as a computer: specs, load, uptime, threat.*
@@ -958,6 +959,21 @@
   - Method `.test_district_grid_deterministic()`
 - `class CLIParityTest`
   - Method `.test_deckos_arcs_districts_forecast_commands()`
+
+---
+
+### [`tests/test_delta23_fixes.py`](tests/test_delta23_fixes.py)
+> *Delta-23 failing-first: hostile numerics must not crash DeckOS/arcs helpers.*
+
+**Size**: `38` lines (`1319` bytes)
+
+**Classes:**
+- `class TestDelta23Hardening`
+  - Method `.test_recent_history_survives_inf()`
+  - Method `.test_arc_stage_survives_inf()`
+  - Method `.test_stage_info_survives_inf()`
+  - Method `.test_sysinfo_survives_hostile_deck()`
+  - Method `.test_list_processes_survives_hostile_turn()`
 
 ---
 

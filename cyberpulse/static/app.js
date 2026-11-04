@@ -3822,8 +3822,8 @@ async function handleEvadeAv() {
       var deckos = data.deckos || null;
       var meta = $("deckos-meta"), procs = $("deckos-grid");
       if (deckos && meta && procs) {
-        meta.textContent = deckos.hostname + " (" + deckos.ip + ") · uptime " + deckos.uptime + " · CPU " + deckos.cpu + " · trace " + deckos.trace + "% · procs " + deckos.processes;
-        if (Array.isArray(deckos.processes_list || deckos.processes) && false) { void 0; }
+        var procCount = Array.isArray(deckos.processes) ? deckos.processes.length : deckos.processes;
+        meta.textContent = deckos.hostname + " (" + deckos.ip + ") · uptime " + deckos.uptime + " · CPU " + deckos.cpu + " · trace " + deckos.trace + "% · procs " + procCount;
         if (Array.isArray(deckos.processes)) {
           procs.innerHTML = deckos.processes.map(function (p) {
             return '<div class="deckos-proc"><span>[' + p.pid + "] " + esc(p.name) + " <em>" + esc(p.owner) + "</em></span>" +
@@ -3858,11 +3858,13 @@ async function handleEvadeAv() {
     try {
       var arcs = (data.arcs && data.arcs.arcs) || [];
       var live = (data.arcs && data.arcs.live) || {};
-      var liveByContact = { "Mira Voss": "mira_decay", "Kilo": "kilo_yield", "The Archivist": "archivist_wipe", "Agent Zero": "zero_counter" };
-      varagrid = $("arcs-grid");
+      var liveByContact = { "Mira Voss": ["mira_decay"], "Kilo": ["kilo_yield", "kilo_overdrive"], "The Archivist": ["archivist_wipe"], "Agent Zero": ["zero_counter"] };
+      var agrid = $("arcs-grid");
       if (agrid && arcs.length) {
         agrid.innerHTML = arcs.map(function (a) {
-          var tag = live[liveByContact[a.name]] ? ' <span class="a-live">BONUS LIVE</span>' : "";
+          var keys = liveByContact[a.name] || [];
+          var isLive = keys.some(function (k) { return !!live[k]; });
+          var tag = isLive ? ' <span class="a-live">BONUS LIVE</span>' : "";
           return '<div class="arc-card" tabindex="0" aria-label="' + esc(a.name) + " arc stage " + a.stage + ' of 3">' +
             '<div class="a-name">' + esc(a.name) + " // " + esc(a.arc) + tag + "</div>" +
             '<div class="a-stage">' + esc(a.stage_label) + " (" + a.stage + "/3" + (a.next_trust ? " · next @ trust " + a.next_trust : " · MAX") + ")</div>" +
