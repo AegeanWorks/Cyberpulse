@@ -718,7 +718,7 @@ def show_main_menu(engine: GameEngine, save_mgr: SaveManager) -> str:
         if choice in ("q", "quit", "exit"):
             print("👋 Neural link closed.")
             return "quit"
-        print("Unknown choice. Enter 1-6 or Q.")
+        print("Unknown choice. Enter 1-7 or Q.")
 
 
 def execute_hack_puzzle(engine: GameEngine, target_id: str, auto_solve: bool = False) -> bool:
@@ -1180,12 +1180,13 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         if len(parts) < 2:
             print("Usage: buy <item_id> (e.g. `buy overclock_cpu`)")
             return True
-        item = shop.catalog.get(parts[1])
-        ok, msg = shop.purchase(engine.deck, parts[1], price_multiplier=engine.shop_price_multiplier())
+        key = parts[1].lower().strip()
+        item = shop.catalog.get(key)
+        ok, msg = shop.purchase(engine.deck, key, price_multiplier=engine.shop_price_multiplier())
         print(msg)
-        if ok and (item is None or item.category != "consumable"):
+        if ok and item is not None and item.category == "hardware":
             profile = save_mgr.load_career()
-            profile.purchased_upgrades.append(parts[1])
+            profile.purchased_upgrades.append(key)
             profile.banked_creds = engine.deck.cryptocreds
             save_mgr.save_career(profile)
         return True
@@ -1229,7 +1230,7 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         print(msg)
         return True
 
-    if action in ("daemons", "ps"):
+    if action in ("daemons",):
         print_daemons(engine)
         return True
 
@@ -1381,7 +1382,12 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         if not isinstance(seed, int):
             print("Usage: replay <1-5>")
             return True
-        replayed = GameEngine(seed=seed, career_profile=profile)
+        replayed = GameEngine(
+            seed=seed,
+            career_profile=profile,
+            difficulty=record.get("difficulty", engine.difficulty),
+            allegiance=record.get("allegiance", engine.allegiance),
+        )
         engine.__dict__.update(replayed.__dict__)
         save_mgr.mark_autosave_baseline(engine)
         print(f"Replaying run {index} // seed {seed}.")
