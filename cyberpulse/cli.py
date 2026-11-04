@@ -1288,7 +1288,7 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
         return True
 
     if action in ("reset_career", "reset_profile"):
-        if len(parts) < 2 or parts[1].upper() != "CONFIRM":
+        if len(parts) != 2 or parts[1].upper() != "CONFIRM":
             print("Usage: reset_career CONFIRM")
             return True
         had_career = save_mgr.career_file.exists() or save_mgr.career_file.with_suffix(".bak").exists()
@@ -1424,8 +1424,11 @@ def run_command(cmd_line: str, engine: GameEngine, save_mgr: SaveManager, auto_s
             return True
         loaded = save_mgr.load(slot)
         if loaded:
-            engine.__dict__.update(loaded.__dict__)
-            print(f"📂 Loaded saved infiltration session from {save_mgr.slot_label(slot)}.")
+            if loaded.state.is_victory or loaded.state.is_game_over or loaded.state.is_jacked_out:
+                print(f"Checkpoint in {save_mgr.slot_label(slot)} is from a finished run and cannot be continued.")
+            else:
+                engine.__dict__.update(loaded.__dict__)
+                print(f"📂 Loaded saved infiltration session from {save_mgr.slot_label(slot)}.")
         else:
             print(f"No saved game found in {save_mgr.slot_label(slot)}.")
         return True
