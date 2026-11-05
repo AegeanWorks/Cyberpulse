@@ -40,13 +40,24 @@ def score_run(
     main_story_complete: bool,
 ) -> Dict[str, Any]:
     """Return a score and its itemized breakdown for one settled run."""
+    weights = SCORE_WEIGHTS if isinstance(SCORE_WEIGHTS, dict) else {}
+    def _weight(key: str, fallback: int) -> int:
+        try:
+            value = weights.get(key, fallback)
+            if isinstance(value, bool):
+                return fallback
+            if isinstance(value, float) and not math.isfinite(value):
+                return fallback
+            return max(0, int(value))
+        except (TypeError, ValueError, OverflowError):
+            return fallback
     breakdown = {
         "credits": _safe_count(gained),
-        "combo": _safe_count(best_combo) * SCORE_WEIGHTS["combo"],
-        "quests": _safe_count(quests_done) * SCORE_WEIGHTS["quests"],
-        "breaches": _safe_count(nodes_breached) * SCORE_WEIGHTS["breaches"],
-        "contract": SCORE_WEIGHTS["contract"] if contract_completed else 0,
-        "outcome": SCORE_WEIGHTS["victory"] if outcome == "victory" else (SCORE_WEIGHTS["jackout"] if outcome == "jackout" else 0),
-        "story": SCORE_WEIGHTS["story"] if main_story_complete else 0,
+        "combo": _safe_count(best_combo) * _weight("combo", 75),
+        "quests": _safe_count(quests_done) * _weight("quests", 150),
+        "breaches": _safe_count(nodes_breached) * _weight("breaches", 25),
+        "contract": _weight("contract", 200) if contract_completed else 0,
+        "outcome": _weight("victory", 500) if outcome == "victory" else (_weight("jackout", 250) if outcome == "jackout" else 0),
+        "story": _weight("story", 100) if main_story_complete else 0,
     }
     return {"score": sum(breakdown.values()), "breakdown": breakdown}

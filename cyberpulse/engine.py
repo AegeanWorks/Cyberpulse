@@ -1,6 +1,7 @@
 """Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback."""
 
 import hashlib
+import math
 import random
 import time
 import uuid
@@ -105,6 +106,19 @@ from cyberpulse.story import (
     trust_dialogue_for,
     initial_quests,
 )
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Coerce a hostile numeric to a finite int; non-finite values become default."""
+    try:
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, float) and not math.isfinite(value):
+            return default
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+
 
 KNOWN_CVES: Dict[str, ExploitPayload] = {
     "cve-2024-38812": ExploitPayload(
@@ -412,7 +426,7 @@ class GameEngine:
     def _contact_trust(self, contact_id: str) -> int:
         """Trust level for an operative (0 when the contact is missing)."""
         contact = self._find_contact(contact_id)
-        return int(getattr(contact, "trust", 0)) if contact else 0
+        return _safe_int(getattr(contact, "trust", 0)) if contact else 0
 
     def _adjust_trust(self, contact: Any, delta: int) -> Optional[str]:
         """Shift an operative's trust, announcing loyalty-arc stage crossings.
@@ -422,9 +436,9 @@ class GameEngine:
         """
         if contact is None or not delta:
             return None
-        before = arcs_stage(contact.contact_id, int(contact.trust))
-        contact.trust = max(-1, int(contact.trust) + int(delta))
-        after = arcs_stage(contact.contact_id, int(contact.trust))
+        before = arcs_stage(contact.contact_id, _safe_int(getattr(contact, "trust", 0)))
+        contact.trust = max(-1, _safe_int(getattr(contact, "trust", 0)) + _safe_int(delta))
+        after = arcs_stage(contact.contact_id, _safe_int(getattr(contact, "trust", 0)))
         if after <= before:
             return None
         info = arcs_stage_info(contact.contact_id, after)
@@ -660,7 +674,7 @@ class GameEngine:
             tier_line = trust_dialogue_for(contact.contact_id, contact.trust_tier)
             if tier_line:
                 line = f"{line}\n{tier_line}"
-            stage = arcs_stage(contact.contact_id, int(contact.trust))
+            stage = arcs_stage(contact.contact_id, _safe_int(getattr(contact, "trust", 0)))
             if stage:
                 info = arcs_stage_info(contact.contact_id, stage)
                 title = ARCS_DEFS.get(contact.contact_id, {}).get("title", "arc")
@@ -1381,14 +1395,12 @@ class GameEngine:
                 return {"ok": False, "action": act, "reason": "Keylogger already running on this host."}
             if self.deck.cpu_cycles < 2:
                 return {"ok": False, "action": act, "reason": "Need 2 CPU."}
-            daemon_yield = 15 + node.security_level * 5
+            daemon_yield = self.DAEMON_BASE_YIELD + node.security_level * self.DAEMON_YIELD_PER_SECURITY
             boosted = arcs_stage("kilo", self._contact_trust("kilo")) >= 2
-            if boosted:
-                daemon_yield += max(1, daemon_yield // 10)
-            notes = (f"+{daemon_yield} unbanked Creds/turn passive siphon, +3% trace/tick exposure, "
+            notes = (f"+{daemon_yield} unbanked Creds/turn passive siphon, +{self.DAEMON_DETECTION_RISK}% trace/tick exposure, "
                      "+2 alert on install.")
             if boosted:
-                notes += " Kilo arc yield applied."
+                notes += " Kilo arc yield +10% at harvest."
             return {
                 "ok": True, "action": act, "target": node.node_id,
                 "cpu_delta": -2, "trace_gain": 0, "turns": 0, "notes": notes,
@@ -1482,7 +1494,7 @@ class GameEngine:
     @staticmethod
     def hop_latency_ms(node: Any) -> int:
         """Deterministic per-hop latency: base + security tiers + stable jitter."""
-        base = 8 + max(1, int(getattr(node, "security_level", 1))) * 3
+        base = 8 + max(1, _safe_int(getattr(node, "security_level", 1), default=1)) * 3
         digest = hashlib.sha256(str(getattr(node, "node_id", "?")).encode("utf-8")).hexdigest()
         jitter = int(digest, 16) % 7
         return base + jitter
@@ -2669,7 +2681,7 @@ class GameEngine:
         if contact:
             # Mira's arc (trust 4+): the Fixer's Confidant covers walk-aways.
             if (contact.contact_id == "mira"
-                    and arcs_stage("mira", int(contact.trust)) >= 2):
+                    and arcs_stage("mira", _safe_int(getattr(contact, "trust", 0))) >= 2):
                 message_cover = (
                     f"CONTRACT DECLINED: {contract.title}. "
                     "Mira covers the walk-away: no trust lost; the board is refreshed."
@@ -3907,6 +3919,8 @@ class GameEngine:
         self.deck.active_daemons.append(daemon)
         adjust_alert(self.state.world, 2)
         msg = f"👾 DAEMON INITIALIZED: [{daemon_type.upper()}] active on {node.hostname} ({node.ip_address}). Passively harvesting +{daemon_yield} unbanked Creds/turn."
+        if arcs_stage("kilo", self._contact_trust("kilo")) >= 2:
+            msg += " Kilo arc yield +10% at harvest."
         for line in self._progress_quests("deploy_daemon", daemon_type):
             msg += f"\n{line}"
         self.state.message_log.append(msg)

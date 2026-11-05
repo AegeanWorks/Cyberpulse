@@ -83,7 +83,7 @@ def sysinfo(engine: Any) -> Dict[str, Any]:
     max_cpu = _safe_int(getattr(deck, "max_cpu", 0))
     cpu = _safe_int(getattr(deck, "cpu_cycles", 0))
     procs = list_processes(engine)
-    load = sum(int(p.get("cpu", 0)) for p in procs)
+    load = sum(_safe_int(p.get("cpu", 0)) for p in procs)
     return {
         "hostname": getattr(deck, "local_hostname", "rig.netrunner.local"),
         "ip": getattr(deck, "local_ip", "10.99.0.2"),
@@ -112,7 +112,7 @@ def kill_process(engine: Any, pid: int) -> Tuple[bool, str]:
             return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
     try:
         wanted = int(pid)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return False, f"Invalid PID '{pid}'. Run `ps` to list the table."
     procs = list_processes(engine)
     target = next((p for p in procs if p["pid"] == wanted), None)
@@ -177,6 +177,8 @@ def recent_history(engine: Any, limit: int = 10) -> List[str]:
         hist = list(hist)
     except TypeError:
         return []
+    if isinstance(limit, bool):
+        limit = 10
     try:
         limit = max(1, min(50, int(limit)))
     except (TypeError, ValueError, OverflowError):

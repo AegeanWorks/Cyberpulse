@@ -96,6 +96,7 @@ cyberpulse/
     ├── test_daily.py
     ├── test_deckos_arcs.py
     ├── test_delta23_fixes.py
+    ├── test_delta24_tuning_gaps.py
     ├── test_difficulty.py
     ├── test_engagement_fairness.py
     ├── test_engine.py

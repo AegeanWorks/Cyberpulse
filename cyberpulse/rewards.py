@@ -18,8 +18,14 @@ REWARD_SCHEDULE = {
     "jackpot_denom": 2,
 }
 
-CHIP_DROP_RATE = REWARD_SCHEDULE["chip_rate"]
-JACKPOT_RATE = REWARD_SCHEDULE["jackpot_rate"]
+
+def __getattr__(name: str):
+    """Backwards-compat aliases that always track REWARD_SCHEDULE (no drift)."""
+    if name == "CHIP_DROP_RATE":
+        return REWARD_SCHEDULE["chip_rate"]
+    if name == "JACKPOT_RATE":
+        return REWARD_SCHEDULE["jackpot_rate"]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def roll_breach_reward(node: Node, rng: Optional[random.Random] = None) -> Tuple[int, str, Optional[str]]:

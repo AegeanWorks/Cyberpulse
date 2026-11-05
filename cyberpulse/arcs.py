@@ -8,9 +8,22 @@ weight, and market mood derived deterministically from (seed, tick, alert).
 """
 
 import hashlib
+import math
 from typing import Any, Dict, List
 
 from cyberpulse.models import Quest
+
+
+def _safe_trust(value: Any, default: int = 0) -> int:
+    """Coerce a trust value to a finite int; hostile values become default."""
+    try:
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, float) and not math.isfinite(value):
+            return default
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
 
 ARC_DEFS: Dict[str, Dict[str, Any]] = {
     "mira": {
@@ -114,11 +127,13 @@ DISTRICTS = (
 
 def arc_stage(contact_id: str, trust: int) -> int:
     """Return how many arc stages (0-3) a trust value unlocks."""
+    if isinstance(trust, bool):
+        return 0
     try:
         trust_value = int(trust)
     except (TypeError, ValueError, OverflowError):
         return 0
-    if isinstance(trust, bool):
+    if isinstance(trust, float) and not math.isfinite(trust):
         return 0
     stages = ARC_DEFS.get(contact_id, {}).get("stages", ())
     reached = 0
@@ -149,7 +164,7 @@ def arc_status(contacts: List[Any]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     for contact in contacts or []:
         cid = getattr(contact, "contact_id", "?")
-        trust = int(getattr(contact, "trust", 0))
+        trust = _safe_trust(getattr(contact, "trust", 0))
         spec = ARC_DEFS.get(cid)
         if not spec:
             continue
@@ -177,7 +192,7 @@ def arc_status(contacts: List[Any]) -> List[Dict[str, Any]]:
 
 def _district_seed(seed: int, tick: int, key: str) -> int:
     """Deterministic district roll (hashlib, not hash(): stable across processes)."""
-    digest = hashlib.sha256(f"cyberpulse-district:{int(seed)}:{int(tick)}:{key}".encode()).hexdigest()
+    digest = hashlib.sha256(f"cyberpulse-district:{_safe_trust(seed)}:{_safe_trust(tick)}:{key}".encode()).hexdigest()
     return int(digest[:8], 16)
 
 
@@ -193,11 +208,12 @@ def district_for_node(seed: int, node_id: str) -> Dict[str, Any]:
 
 def district_grid(seed: int, tick: int, alert: int) -> List[Dict[str, Any]]:
     """Deterministic per-tick district simulation: load, patrol, market mood."""
+    safe_alert = _safe_trust(alert)
     rows: List[Dict[str, Any]] = []
     for idx, district in enumerate(DISTRICTS):
         h = _district_seed(seed, tick, district["key"]) % 100
-        load = min(100, max(5, (h + int(alert) // 2 + idx * 7) % 100))
-        patrol = "heavy" if int(alert) >= 55 and (h + idx) % 3 == 0 else ("light" if int(alert) < 30 else "standard")
+        load = min(100, max(5, (h + safe_alert // 2 + idx * 7) % 100))
+        patrol = "heavy" if safe_alert >= 55 and (h + idx) % 3 == 0 else ("light" if safe_alert < 30 else "standard")
         mood = "surging" if load > 75 else ("quiet" if load < 30 else "steady")
         rows.append({
             "key": district["key"],
@@ -223,7 +239,7 @@ def arc_epilogue_lines(contacts: List[Any]) -> List[str]:
     lines: List[str] = []
     for contact in contacts or []:
         cid = getattr(contact, "contact_id", "?")
-        if arc_stage(cid, int(getattr(contact, "trust", 0))) >= 3:
+        if arc_stage(cid, _safe_trust(getattr(contact, "trust", 0))) >= 3:
             line = ARC_EPILOGUES.get(cid)
             if line:
                 lines.append(line)
@@ -235,7 +251,7 @@ def live_bonuses(engine: Any) -> Dict[str, bool]:
     def trust(cid: str) -> int:
         for contact in getattr(engine.state, "contacts", []) or []:
             if getattr(contact, "contact_id", "") == cid:
-                return int(getattr(contact, "trust", 0))
+                return _safe_trust(getattr(contact, "trust", 0))
         return 0
 
     contract = getattr(engine.state, "active_contract", None)

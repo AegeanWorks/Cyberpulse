@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `61`
-- **Total Classes**: `105`
-- **Total Top-Level Functions**: `141`
-- **Total Class Methods**: `912`
-- **Total Source Lines**: `20248`
+- **Total Python Modules**: `62`
+- **Total Classes**: `110`
+- **Total Top-Level Functions**: `144`
+- **Total Class Methods**: `924`
+- **Total Source Lines**: `20427`
 
 ---
 
@@ -42,9 +42,10 @@
 ### [`cyberpulse/arcs.py`](cyberpulse/arcs.py)
 > *Operative loyalty arcs + district grid simulation (additive, save-compatible).*
 
-**Size**: `266` lines (`11060` bytes)
+**Size**: `282` lines (`11627` bytes)
 
 **Functions:**
+- `def _safe_trust(value, default)` - *Coerce a trust value to a finite int; hostile values become default.*
 - `def arc_stage(contact_id, trust)` - *Return how many arc stages (0-3) a trust value unlocks.*
 - `def stage_info(contact_id, stage)` - *Return the label/text/bonus of an arc stage (stage 1-3).*
 - `def arc_status(contacts)` - *Summarize every operative's arc for CLI/Web/dossier consumers.*
@@ -119,7 +120,7 @@
 ### [`cyberpulse/deckos.py`](cyberpulse/deckos.py)
 > *In-game DeckOS computer simulation: processes, sysinfo, uptime, command history.*
 
-**Size**: `184` lines (`7749` bytes)
+**Size**: `186` lines (`7821` bytes)
 
 **Functions:**
 - `def _safe_int(value, default)` - *Coerce a DeckOS numeric to a finite int; hostile values become default.*
@@ -147,7 +148,7 @@
 ### [`cyberpulse/engine.py`](cyberpulse/engine.py)
 > *Deterministic cyberspace game engine with risk-reward loss aversion and near-miss feedback.*
 
-**Size**: `4499` lines (`215318` bytes)
+**Size**: `4513` lines (`215990` bytes)
 
 **Classes:**
 - `class GameEngine` - *Manages gameplay rules, push-your-luck risk, and victory/defeat conditions.*
@@ -278,6 +279,9 @@
   - Method `.add_proxy_hop(node_query)` - *Route neural telemetry through a compromised host to dampen trace buildup.*
   - Method `.sever_proxy(node_query)` - *Burn a proxy tunnel connection to dump 15% trace immediately.*
   - Method `.quickhack(target_query)` - *Instant-breach an adjacent low-security host at a steep CPU and trace cost.*
+
+**Functions:**
+- `def _safe_int(value, default)` - *Coerce a hostile numeric to a finite int; non-finite values become default.*
 
 ---
 
@@ -433,9 +437,10 @@
 ### [`cyberpulse/rewards.py`](cyberpulse/rewards.py)
 > *Variable-ratio reward engine and dopamine loot schedules for CyberPulse.*
 
-**Size**: `55` lines (`2015` bytes)
+**Size**: `61` lines (`2262` bytes)
 
 **Functions:**
+- `def __getattr__(name)` - *Backwards-compat aliases that always track REWARD_SCHEDULE (no drift).*
 - `def roll_breach_reward(node, rng)` - *Calculate variable-magnitude reward payout and drops (Skinner box reinforcement schedule).*
 
 ---
@@ -454,7 +459,7 @@
 ### [`cyberpulse/scoring.py`](cyberpulse/scoring.py)
 > *Transparent run scoring for legacy and Hall of Fame rankings.*
 
-**Size**: `52` lines (`1680` bytes)
+**Size**: `63` lines (`2146` bytes)
 
 **Functions:**
 - `def _safe_count(value)` - *Coerce a scoring input to a finite non-negative int; hostile values become 0.*
@@ -1008,6 +1013,32 @@
   - Method `.test_stage_info_survives_inf()`
   - Method `.test_sysinfo_survives_hostile_deck()`
   - Method `.test_list_processes_survives_hostile_turn()`
+
+---
+
+### [`tests/test_delta24_tuning_gaps.py`](tests/test_delta24_tuning_gaps.py)
+> *Delta-24: lock in tuning-table single-source gaps found since last 3 pushes.*
+
+**Size**: `130` lines (`5081` bytes)
+
+**Classes:**
+- `class TestDaemonForecastSingleSource`
+  - Method `.test_forecast_uses_daemon_constants()`
+  - Method `.test_deploy_and_forecast_agree_on_base()`
+- `class TestDeckOSHardening`
+  - Method `.test_sysinfo_load_survives_hostile_cpu()`
+  - Method `.test_kill_process_survives_huge_int()`
+  - Method `.test_recent_history_bool_limit()`
+- `class TestArcsHardening`
+  - Method `.test_arc_status_survives_hostile_trust()`
+  - Method `.test_live_bonuses_survives_hostile_trust()`
+  - Method `.test_district_grid_survives_hostile_alert()`
+  - Method `.test_contact_trust_survives_inf()`
+  - Method `.test_hop_latency_survives_inf()`
+- `class TestRewardAliases`
+  - Method `.test_aliases_track_schedule()`
+- `class TestScoringResilience`
+  - Method `.test_mutated_weights_fall_back()`
 
 ---
 
